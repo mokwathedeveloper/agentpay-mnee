@@ -25,9 +25,41 @@ class PaymentAgent {
     this.wallet = new ethers.Wallet(this.privateKey, this.provider);
     this.vaultContract = new ethers.Contract(this.vaultAddress, VAULT_ABI, this.wallet);
     
+    // Initialize decision log
+    this.decisionLog = [];
+    
     console.log(`🤖 Payment Agent initialized`);
     console.log(`📍 Agent Address: ${this.wallet.address}`);
     console.log(`🏦 Vault Contract: ${this.vaultAddress}`);
+    this.logPolicyConfiguration();
+  }
+
+  /**
+   * Log current policy configuration for transparency
+   */
+  logPolicyConfiguration() {
+    const policy = this.loadPolicyConfig();
+    console.log('\n📋 Policy Configuration:');
+    console.log(`   Valid Purposes: ${policy.validPurposes.join(', ')}`);
+    console.log(`   Amount Range: ${policy.minAmount} - ${policy.maxAmount} MNEE`);
+    console.log(`   Request Delay: ${policy.requestDelay}ms`);
+  }
+
+  /**
+   * Log decision with timestamp and context
+   */
+  logDecision(paymentId, decision, context) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      paymentId,
+      decision: decision.allowed,
+      reason: decision.reason,
+      rules: decision.decisions.map(d => ({ rule: d.rule, passed: d.passed, data: d.data })),
+      context
+    };
+    
+    this.decisionLog.push(logEntry);
+    console.log(`\n📝 Decision logged: ${decision.reason} (ID: ${paymentId})`);
   }
 
   /**
@@ -63,65 +95,107 @@ class PaymentAgent {
   }
 
   /**
-   * Simulate AI decision making for payment
+   * Load policy configuration from environment
    */
-  simulatePaymentDecision(amount, recipient, purpose, vaultStatus) {
+  loadPolicyConfig() {
+    return {
+      validPurposes: (process.env.AGENT_VALID_PURPOSES || 'service_payment,api_usage,data_purchase,subscription').split(','),
+      minAmount: parseFloat(process.env.AGENT_MIN_AMOUNT || '0.1'),
+      maxAmount: parseFloat(process.env.AGENT_MAX_AMOUNT || '1000'),
+      requestDelay: parseInt(process.env.AGENT_REQUEST_DELAY_MS || '2000')
+    };
+  }
+
+  /**
+   * Execute policy-driven decision making for payment
+   */
+  executePaymentPolicy(amount, recipient, purpose, vaultStatus) {
+    const policy = this.loadPolicyConfig();
     const decisions = [];
+    const amountNum = parseFloat(amount);
     
     // Policy 1: Check sufficient balance
-    if (parseFloat(vaultStatus.balance) < parseFloat(amount)) {
+    const balanceNum = parseFloat(vaultStatus.balance);
+    if (balanceNum < amountNum) {
       decisions.push({
         rule: 'INSUFFICIENT_BALANCE',
         passed: false,
-        message: `Balance ${vaultStatus.balance} MNEE < Required ${amount} MNEE`
+        message: `Balance ${vaultStatus.balance} MNEE < Required ${amount} MNEE`,
+        data: { balance: balanceNum, required: amountNum }
       });
-      return { allowed: false, decisions };
+      return { allowed: false, decisions, reason: 'INSUFFICIENT_BALANCE' };
     }
     decisions.push({
       rule: 'SUFFICIENT_BALANCE',
       passed: true,
-      message: `Balance ${vaultStatus.balance} MNEE >= Required ${amount} MNEE`
+      message: `Balance ${vaultStatus.balance} MNEE >= Required ${amount} MNEE`,
+      data: { balance: balanceNum, required: amountNum }
     });
 
     // Policy 2: Check daily limit
-    if (parseFloat(vaultStatus.remainingAllowance) < parseFloat(amount)) {
+    const remainingNum = parseFloat(vaultStatus.remainingAllowance);
+    if (remainingNum < amountNum) {
       decisions.push({
         rule: 'DAILY_LIMIT_EXCEEDED',
         passed: false,
-        message: `Remaining allowance ${vaultStatus.remainingAllowance} MNEE < Required ${amount} MNEE`
+        message: `Remaining allowance ${vaultStatus.remainingAllowance} MNEE < Required ${amount} MNEE`,
+        data: { remaining: remainingNum, required: amountNum }
       });
-      return { allowed: false, decisions };
+      return { allowed: false, decisions, reason: 'DAILY_LIMIT_EXCEEDED' };
     }
     decisions.push({
       rule: 'WITHIN_DAILY_LIMIT',
       passed: true,
-      message: `Remaining allowance ${vaultStatus.remainingAllowance} MNEE >= Required ${amount} MNEE`
+      message: `Remaining allowance ${vaultStatus.remainingAllowance} MNEE >= Required ${amount} MNEE`,
+      data: { remaining: remainingNum, required: amountNum }
     });
 
-    // Policy 3: Purpose validation (simulated AI logic)
-    const validPurposes = ['service_payment', 'api_usage', 'data_purchase', 'subscription'];
-    if (!validPurposes.some(valid => purpose.toLowerCase().includes(valid))) {
+    // Policy 3: Amount range validation
+    if (amountNum < policy.minAmount || amountNum > policy.maxAmount) {
+      decisions.push({
+        rule: 'AMOUNT_OUT_OF_RANGE',
+        passed: false,
+        message: `Amount ${amount} MNEE outside allowed range [${policy.minAmount}, ${policy.maxAmount}]`,
+        data: { amount: amountNum, minAmount: policy.minAmount, maxAmount: policy.maxAmount }
+      });
+      return { allowed: false, decisions, reason: 'AMOUNT_OUT_OF_RANGE' };
+    }
+    decisions.push({
+      rule: 'AMOUNT_IN_RANGE',
+      passed: true,
+      message: `Amount ${amount} MNEE within allowed range [${policy.minAmount}, ${policy.maxAmount}]`,
+      data: { amount: amountNum, minAmount: policy.minAmount, maxAmount: policy.maxAmount }
+    });
+
+    // Policy 4: Purpose validation (environment-driven)
+    const purposeValid = policy.validPurposes.some(valid => purpose.toLowerCase().includes(valid.toLowerCase()));
+    if (!purposeValid) {
       decisions.push({
         rule: 'INVALID_PURPOSE',
         passed: false,
-        message: `Purpose "${purpose}" not in approved categories`
+        message: `Purpose "${purpose}" not in approved categories: ${policy.validPurposes.join(', ')}`,
+        data: { purpose, validPurposes: policy.validPurposes }
       });
-      return { allowed: false, decisions };
+      return { allowed: false, decisions, reason: 'INVALID_PURPOSE' };
     }
     decisions.push({
       rule: 'VALID_PURPOSE',
       passed: true,
-      message: `Purpose "${purpose}" approved by AI policy`
+      message: `Purpose "${purpose}" approved by policy`,
+      data: { purpose, validPurposes: policy.validPurposes }
     });
 
-    return { allowed: true, decisions };
+    return { allowed: true, decisions, reason: 'POLICY_APPROVED' };
   }
 
   /**
    * Execute payment with policy validation
    */
   async executePayment(recipient, amount, purpose) {
+    const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     console.log('\n🔄 Processing payment request...');
+    console.log(`🆔 Payment ID: ${paymentId}`);
     console.log(`💰 Amount: ${amount} MNEE`);
     console.log(`📍 Recipient: ${recipient}`);
     console.log(`📝 Purpose: ${purpose}`);
@@ -144,19 +218,24 @@ class PaymentAgent {
       }
       console.log('✅ Recipient is whitelisted');
 
-      // Step 3: AI policy decision
-      console.log('\n🤖 Running AI payment policy...');
-      const decision = this.simulatePaymentDecision(amount, recipient, purpose, vaultStatus);
+      // Step 3: Execute policy-driven decision
+      console.log('\n🤖 Running policy-driven payment validation...');
+      const decision = this.executePaymentPolicy(amount, recipient, purpose, vaultStatus);
       
       decision.decisions.forEach(rule => {
         const status = rule.passed ? '✅' : '❌';
         console.log(`${status} ${rule.rule}: ${rule.message}`);
       });
 
+      // Log decision for audit trail
+      this.logDecision(paymentId, decision, { recipient, amount, purpose, vaultStatus });
+      
       if (!decision.allowed) {
-        console.log('\n❌ PAYMENT REJECTED: Policy violation');
-        return { success: false, reason: 'POLICY_VIOLATION', decisions: decision.decisions };
+        console.log(`\n❌ PAYMENT REJECTED: ${decision.reason}`);
+        return { success: false, reason: decision.reason, decisions: decision.decisions, paymentId };
       }
+      
+      console.log(`\n✅ PAYMENT APPROVED: ${decision.reason}`);
 
       // Step 4: Execute payment
       console.log('\n💳 Executing payment...');
@@ -173,12 +252,14 @@ class PaymentAgent {
         success: true, 
         txHash: tx.hash, 
         blockNumber: receipt.blockNumber,
-        decisions: decision.decisions 
+        decisions: decision.decisions,
+        reason: decision.reason,
+        paymentId
       };
 
     } catch (error) {
       console.error('❌ Payment execution failed:', error.message);
-      return { success: false, reason: 'EXECUTION_ERROR', error: error.message };
+      return { success: false, reason: 'EXECUTION_ERROR', error: error.message, paymentId };
     }
   }
 
@@ -212,18 +293,20 @@ class PaymentAgent {
         console.log('🔍 Reason:', result.reason);
       }
       
-      // Wait between requests for rate limiting
+      // Wait between requests for rate limiting (configurable)
       if (i < paymentRequests.length - 1) {
-        console.log('\n⏳ Waiting 2 seconds before next request...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const delay = this.loadPolicyConfig().requestDelay;
+        console.log(`\n⏳ Waiting ${delay}ms before next request...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
     console.log('\n🏁 Agent processing completed');
+    this.printDecisionSummary();
   }
 
   /**
-   * Load payment requests from environment configuration (not hardcoded)
+   * Load payment requests from environment configuration (fully dynamic)
    */
   loadPaymentRequests() {
     const recipientAddress = process.env.RECIPIENT_WALLET_ADDRESS;
@@ -231,23 +314,49 @@ class PaymentAgent {
       return [];
     }
 
-    // In production, this could come from:
-    // - API endpoints
-    // - Configuration files  
-    // - Event listeners
-    // - User input
-    return [
-      {
+    // Load payment scenarios from environment variables
+    const amounts = (process.env.AGENT_PAYMENT_AMOUNTS || '5,15').split(',');
+    const purposes = (process.env.AGENT_PAYMENT_PURPOSES || 'Automated API service_payment,Data processing subscription fee').split(',');
+    
+    // Generate payment requests from configuration
+    const requests = [];
+    for (let i = 0; i < Math.max(amounts.length, purposes.length); i++) {
+      requests.push({
         recipient: recipientAddress,
-        amount: '5',
-        purpose: 'Automated API service_payment'
-      },
-      {
-        recipient: recipientAddress,
-        amount: '15', 
-        purpose: 'Data processing subscription fee'
-      }
-    ];
+        amount: amounts[i % amounts.length].trim(),
+        purpose: purposes[i % purposes.length].trim()
+      });
+    }
+    
+    return requests;
+  }
+
+  /**
+   * Print comprehensive decision summary for audit
+   */
+  printDecisionSummary() {
+    if (this.decisionLog.length === 0) {
+      console.log('\n📊 No decisions logged');
+      return;
+    }
+
+    console.log('\n📊 DECISION AUDIT SUMMARY');
+    console.log('=' .repeat(50));
+    
+    const approved = this.decisionLog.filter(d => d.decision).length;
+    const rejected = this.decisionLog.filter(d => !d.decision).length;
+    
+    console.log(`Total Decisions: ${this.decisionLog.length}`);
+    console.log(`Approved: ${approved}`);
+    console.log(`Rejected: ${rejected}`);
+    
+    console.log('\nDecision Breakdown:');
+    this.decisionLog.forEach((log, index) => {
+      const status = log.decision ? '✅' : '❌';
+      console.log(`${index + 1}. ${status} ${log.reason} (${log.paymentId})`);
+      console.log(`   Amount: ${log.context.amount} MNEE | Purpose: ${log.context.purpose}`);
+      console.log(`   Time: ${log.timestamp}`);
+    });
   }
 }
 
