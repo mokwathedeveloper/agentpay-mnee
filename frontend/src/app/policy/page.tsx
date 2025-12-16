@@ -1,12 +1,12 @@
 import { Sidebar } from '@/components/Sidebar'
-import { Overview } from '@/components/Overview'
+import { PaymentPolicy } from '@/components/PaymentPolicy'
 
-export default function Home() {
+export default function PolicyPage() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        <Overview />
+        <PaymentPolicy />
       </main>
     </div>
   )
