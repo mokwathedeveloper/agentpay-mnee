@@ -1,5 +1,5 @@
 const { ethers } = require('ethers');
-require('dotenv').config();
+require('dotenv').config({ path: '../../.env' });
 const SecureEnvValidator = require('../../lib/secureEnvValidator');
 
 // AgentPayVault ABI (minimal interface)
