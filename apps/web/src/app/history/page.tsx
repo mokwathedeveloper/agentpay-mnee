@@ -1,3 +1,5 @@
+'use client'
+
 import { Sidebar } from '@/components/Sidebar'
 import { TransactionHistory } from '@/components/TransactionHistory'
 
