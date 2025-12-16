@@ -33,4 +33,9 @@ typechain-types/
 Thumbs.db
 
 # Logs
-*.log.env
+*.log
+
+# Security scan exclusions
+.sonarqube/
+coverage/
+*.tsbuildinfo
