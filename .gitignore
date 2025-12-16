@@ -33,4 +33,4 @@ typechain-types/
 Thumbs.db
 
 # Logs
-*.log
+*.log.env
