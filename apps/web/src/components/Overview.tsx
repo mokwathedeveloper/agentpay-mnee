@@ -24,11 +24,25 @@ export function Overview() {
   
   // Get recent transactions (last 3)
   const recentTransactions = transactions.slice(0, 3)
+  
+  // Check configuration status
+  const isConfigured = agentAddress && contractAddress && !contractAddress.includes('1234567890')
   return (
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Overview</h1>
         <p className="text-muted-foreground">Monitor your MNEE vault and payment activity</p>
+        {!isConfigured && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm font-medium text-yellow-800">Configuration Required</span>
+            </div>
+            <p className="text-sm text-yellow-700 mt-1">
+              Deploy the AgentPayVault contract and update environment variables to see live data.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Balance Cards */}
