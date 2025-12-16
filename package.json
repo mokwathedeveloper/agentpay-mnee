@@ -12,7 +12,10 @@
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js",
     "dev": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspace=apps/web"
+    "build": "npm run build --workspace=apps/web",
+    "validate-env": "node scripts/validate-env.js",
+    "validate-deployment": "node scripts/validate-env.js deployment",
+    "validate-agent": "node scripts/validate-env.js agent"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

@@ -1,5 +1,6 @@
 const { ethers } = require('ethers');
 require('dotenv').config();
+const SecureEnvValidator = require('../../lib/secureEnvValidator');
 
 // AgentPayVault ABI (minimal interface)
 const VAULT_ABI = [
@@ -11,14 +12,15 @@ const VAULT_ABI = [
 
 class PaymentAgent {
   constructor() {
+    // Validate environment configuration with security checks
+    const validator = new SecureEnvValidator();
+    validator.validateOrExit('agent');
+    
     // Load configuration from environment
     this.privateKey = process.env.AGENT_PRIVATE_KEY;
     this.rpcUrl = process.env.RPC_URL || process.env.SEPOLIA_RPC_URL;
     this.vaultAddress = process.env.VAULT_CONTRACT_ADDRESS;
-    
-    if (!this.privateKey || !this.rpcUrl || !this.vaultAddress) {
-      throw new Error('Missing required environment variables: AGENT_PRIVATE_KEY, RPC_URL, VAULT_CONTRACT_ADDRESS');
-    }
+    this.mneeTokenAddress = process.env.MNEE_TOKEN_ADDRESS;
 
     // Initialize ethers components
     this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
