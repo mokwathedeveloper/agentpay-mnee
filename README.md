@@ -77,42 +77,50 @@ cp .env.example .env
 
 ### Environment Configuration
 
+**🔐 SECURITY FIRST**: AgentPay uses role-based wallet separation for maximum security.
+
 ```bash
-# Network Configuration
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
-MAINNET_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-ETHERSCAN_API_KEY=your_etherscan_api_key
+# Copy and configure environment
+cp .env.example .env
 
-# Deployment (DO NOT COMMIT REAL KEYS)
-PRIVATE_KEY=your_private_key_for_deployment
-
-# Agent Configuration
-AGENT_PRIVATE_KEY=agent_wallet_private_key
-VAULT_CONTRACT_ADDRESS=deployed_vault_contract_address
-RPC_URL=your_ethereum_rpc_endpoint
-
-# Frontend
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_walletconnect_id
-NEXT_PUBLIC_ALCHEMY_API_KEY=your_alchemy_key
+# Edit .env with your secure configuration
+# See docs/security-setup.md for detailed instructions
 ```
+
+**Required Roles:**
+- **Deployer Wallet**: Contract deployment and ownership
+- **Agent Wallet**: Autonomous payment execution  
+- **Vault Owner**: Vault configuration and management
+
+**⚠️ NEVER use the same wallet for multiple roles in production!**
 
 ### Development Workflow
 
 ```bash
-# 1. Compile smart contracts
+# 1. Configure secure environment
+cp .env.example .env
+# Edit .env with your secure configuration
+
+# 2. Validate environment setup
+node -e "const EnvValidator = require('./lib/envValidator'); new EnvValidator().validateOrExit('deployment')"
+
+# 3. Compile smart contracts
 npm run compile
 
-# 2. Run contract tests
+# 4. Run contract tests
 npm run test
 
-# 3. Deploy contracts (testnet)
+# 5. Deploy contracts (testnet)
 npx hardhat run scripts/deploy.js --network sepolia
 
-# 4. Start dashboard
-npm run dev
+# 6. Update .env with deployed contract address
+# Set VAULT_CONTRACT_ADDRESS and NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
 
-# 5. Run payment agent
-node agent/paymentAgent.js
+# 7. Start dashboard
+cd apps/web && npm run dev
+
+# 8. Run payment agent (in separate terminal)
+cd apps/agent && node paymentAgent.js
 ```
 
 ## 💰 MNEE Token Integration
@@ -293,8 +301,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - **MNEE Token**: [0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF](https://etherscan.io/token/0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF)
+- **Security Setup**: [./docs/security-setup.md](./docs/security-setup.md)
 - **Documentation**: [./docs/](./docs/)
-- **Agent Guide**: [./agent/README.md](./agent/README.md)
+- **Agent Guide**: [./apps/agent/README.md](./apps/agent/README.md)
 
 ---
 
