@@ -18,7 +18,8 @@
     "validate-env": "node scripts/validate-production-env.js",
     "validate-deployment": "node scripts/validate-production-env.js deployment",
     "validate-agent": "node scripts/validate-production-env.js agent",
-    "validate-frontend": "node scripts/validate-production-env.js frontend"
+    "validate-frontend": "node scripts/validate-production-env.js frontend",
+    "security-audit": "node -e 'const SecurityAuditor = require(\"./lib/securityAuditor\"); new SecurityAuditor().runFullAudit()'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
