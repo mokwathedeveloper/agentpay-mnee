@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { ethers } from 'ethers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { useVaultData } from '@/hooks/useVaultData'
+import { useContractWrite } from '@/hooks/useContractWrite'
 import { 
   Send, 
   AlertTriangle, 
@@ -12,25 +15,63 @@ import {
   Wallet,
   Clock,
   Shield,
-  ArrowRight
+  Loader2
 } from 'lucide-react'
 
 export function ExecutePayment() {
+  const agentAddress = process.env.NEXT_PUBLIC_AGENT_ADDRESS
+  const contractAddress = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
+  const vaultData = useVaultData(agentAddress, contractAddress)
+  const { executeTransaction, isLoading, isSuccess, error, txHash, resetState } = useContractWrite()
+  
   const [recipient, setRecipient] = useState('')
   const [amount, setAmount] = useState('')
   const [purpose, setPurpose] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [isWhitelistChecked, setIsWhitelistChecked] = useState(false)
+  const [isWhitelisted, setIsWhitelisted] = useState(false)
+
+  // Check whitelist status when recipient changes
+  useEffect(() => {
+    const checkWhitelist = async () => {
+      if (!recipient || !ethers.isAddress(recipient) || !contractAddress) {
+        setIsWhitelistChecked(false)
+        setIsWhitelisted(false)
+        return
+      }
+
+      try {
+        if (!window.ethereum) return
+        
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        const contract = new ethers.Contract(contractAddress, [
+          "function isWhitelisted(address agent, address recipient) view returns (bool)"
+        ], provider)
+        
+        const whitelisted = await contract.isWhitelisted(agentAddress, recipient)
+        setIsWhitelisted(whitelisted)
+        setIsWhitelistChecked(true)
+      } catch (error) {
+        console.error('Failed to check whitelist:', error)
+        setIsWhitelistChecked(false)
+        setIsWhitelisted(false)
+      }
+    }
+
+    checkWhitelist()
+  }, [recipient, agentAddress, contractAddress])
 
   const handlePayment = async () => {
-    setIsProcessing(true)
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsProcessing(false)
+    if (!contractAddress || !recipient || !amount || !purpose) return
+    
+    const amountWei = ethers.parseUnits(amount, 18)
+    await executeTransaction(contractAddress, 'executePayment', [recipient, amountWei, purpose])
   }
 
-  const isValidAddress = recipient.startsWith('0x') && recipient.length === 42
-  const isValidAmount = parseFloat(amount) > 0 && parseFloat(amount) <= 75 // remaining allowance
-  const canExecute = isValidAddress && isValidAmount && purpose.trim().length > 0
+  const isValidAddress = ethers.isAddress(recipient)
+  const remainingAllowance = parseFloat(vaultData.remainingAllowance || '0')
+  const amountNum = parseFloat(amount || '0')
+  const isValidAmount = amountNum > 0 && amountNum <= remainingAllowance
+  const canExecute = isValidAddress && isValidAmount && purpose.trim().length > 0 && isWhitelisted && !vaultData.isLoading
 
   return (
     <div className="p-8 space-y-8">
@@ -90,7 +131,7 @@ export function ExecutePayment() {
                 {amount && !isValidAmount && (
                   <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
-                    Amount exceeds daily allowance (75.00 MNEE)
+                    Amount exceeds daily allowance ({parseFloat(vaultData.remainingAllowance || '0').toFixed(2)} MNEE)
                   </p>
                 )}
               </div>
@@ -112,11 +153,14 @@ export function ExecutePayment() {
               {/* Execute Button */}
               <Button 
                 className="w-full" 
-                disabled={!canExecute || isProcessing}
+                disabled={!canExecute || isLoading}
                 onClick={handlePayment}
               >
-                {isProcessing ? (
-                  <>Processing...</>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
                 ) : (
                   <>
                     <Send className="h-4 w-4 mr-2" />
@@ -124,6 +168,19 @@ export function ExecutePayment() {
                   </>
                 )}
               </Button>
+              
+              {isSuccess && (
+                <div className="flex items-center gap-2 text-green-500 text-sm mt-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Payment executed: {txHash?.slice(0, 10)}...
+                </div>
+              )}
+              {error && (
+                <div className="flex items-center gap-2 text-red-500 text-sm mt-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  {error}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -141,15 +198,21 @@ export function ExecutePayment() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm">Balance</span>
-                  <span className="text-sm font-medium">1,250.00 MNEE</span>
+                  <span className="text-sm font-medium">
+                    {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.balance).toFixed(2)} MNEE`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Daily Limit</span>
-                  <span className="text-sm font-medium">100.00 MNEE</span>
+                  <span className="text-sm font-medium">
+                    {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.dailyLimit).toFixed(2)} MNEE`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Remaining Today</span>
-                  <span className="text-sm font-medium">75.00 MNEE</span>
+                  <span className="text-sm font-medium">
+                    {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.remainingAllowance).toFixed(2)} MNEE`}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -165,15 +228,29 @@ export function ExecutePayment() {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Recipient Whitelisted</span>
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                {!isWhitelistChecked ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isWhitelisted ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Sufficient Balance</span>
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                {vaultData.isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : parseFloat(vaultData.balance) >= amountNum ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Within Daily Limit</span>
-                {isValidAmount ? (
+                {vaultData.isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isValidAmount ? (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 ) : (
                   <AlertTriangle className="h-4 w-4 text-destructive" />

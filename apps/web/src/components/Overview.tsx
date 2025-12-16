@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useVaultData } from '@/hooks/useVaultData'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { 
   Wallet, 
   TrendingUp, 
@@ -10,7 +11,8 @@ import {
   Shield,
   ArrowUpRight,
   ArrowDownRight,
-  Settings
+  Settings,
+  Loader2
 } from 'lucide-react'
 
 export function Overview() {
@@ -18,6 +20,10 @@ export function Overview() {
   const agentAddress = process.env.NEXT_PUBLIC_AGENT_ADDRESS
   const contractAddress = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
   const vaultData = useVaultData(agentAddress, contractAddress)
+  const { transactions, isLoading: txLoading } = useTransactionHistory(agentAddress, contractAddress)
+  
+  // Get recent transactions (last 3)
+  const recentTransactions = transactions.slice(0, 3)
   return (
     <div className="p-8 space-y-8">
       <div>
@@ -94,38 +100,38 @@ export function Overview() {
             <CardDescription>Latest payment activity</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ArrowUpRight className="h-4 w-4 text-red-500" />
-                <div>
-                  <p className="text-sm font-medium">API Service Payment</p>
-                  <p className="text-xs text-muted-foreground">2 hours ago</p>
-                </div>
+            {txLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading transactions...</span>
               </div>
-              <span className="text-sm font-medium">-15.00 MNEE</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ArrowUpRight className="h-4 w-4 text-red-500" />
-                <div>
-                  <p className="text-sm font-medium">Data Purchase</p>
-                  <p className="text-xs text-muted-foreground">5 hours ago</p>
-                </div>
+            ) : recentTransactions.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <p className="text-sm">No recent transactions</p>
+                <p className="text-xs">Activity will appear here once you start using the vault</p>
               </div>
-              <span className="text-sm font-medium">-10.00 MNEE</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ArrowDownRight className="h-4 w-4 text-green-500" />
-                <div>
-                  <p className="text-sm font-medium">Vault Deposit</p>
-                  <p className="text-xs text-muted-foreground">1 day ago</p>
+            ) : (
+              recentTransactions.map((tx, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {tx.type === 'deposit' ? (
+                      <ArrowDownRight className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <ArrowUpRight className="h-4 w-4 text-red-500" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{tx.purpose}</p>
+                      <p className="text-xs text-muted-foreground">{tx.timestamp}</p>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-medium ${
+                    tx.amount.startsWith('+') ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {parseFloat(tx.amount).toFixed(2)} MNEE
+                  </span>
                 </div>
-              </div>
-              <span className="text-sm font-medium">+500.00 MNEE</span>
-            </div>
+              ))
+            )}
           </CardContent>
         </Card>
 

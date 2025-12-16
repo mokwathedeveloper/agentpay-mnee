@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { 
   History, 
   ArrowUpRight, 
@@ -12,63 +13,14 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 
-const transactions = [
-  {
-    id: '0x1a2b3c...',
-    type: 'payment',
-    amount: '-15.00',
-    recipient: '0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e',
-    purpose: 'API service payment for data processing',
-    status: 'confirmed',
-    timestamp: '2 hours ago',
-    block: '18,234,567'
-  },
-  {
-    id: '0x2b3c4d...',
-    type: 'payment',
-    amount: '-10.00',
-    recipient: '0x8ba1f109551bD432803012645Hac136c30C6756M',
-    purpose: 'Monthly subscription renewal',
-    status: 'confirmed',
-    timestamp: '5 hours ago',
-    block: '18,234,445'
-  },
-  {
-    id: '0x3c4d5e...',
-    type: 'deposit',
-    amount: '+500.00',
-    recipient: 'Vault Deposit',
-    purpose: 'Initial vault funding',
-    status: 'confirmed',
-    timestamp: '1 day ago',
-    block: '18,233,890'
-  },
-  {
-    id: '0x4d5e6f...',
-    type: 'payment',
-    amount: '-25.00',
-    recipient: '0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e',
-    purpose: 'Data purchase transaction',
-    status: 'pending',
-    timestamp: '2 days ago',
-    block: 'Pending'
-  },
-  {
-    id: '0x5e6f7g...',
-    type: 'payment',
-    amount: '-5.00',
-    recipient: '0x9cb2f209661cE432903022645Hac146c40D6866N',
-    purpose: 'API usage fee',
-    status: 'failed',
-    timestamp: '3 days ago',
-    block: 'Failed'
-  }
-]
-
 export function TransactionHistory() {
+  const agentAddress = process.env.NEXT_PUBLIC_AGENT_ADDRESS
+  const contractAddress = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
+  const { transactions, stats, isLoading, error } = useTransactionHistory(agentAddress, contractAddress)
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -121,7 +73,9 @@ export function TransactionHistory() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Transactions</p>
-                <p className="text-2xl font-bold">127</p>
+                <p className="text-2xl font-bold">
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalTransactions}
+                </p>
               </div>
               <History className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -133,7 +87,9 @@ export function TransactionHistory() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">This Month</p>
-                <p className="text-2xl font-bold">23</p>
+                <p className="text-2xl font-bold">
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.thisMonth}
+                </p>
               </div>
               <Calendar className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -145,7 +101,9 @@ export function TransactionHistory() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Spent</p>
-                <p className="text-2xl font-bold">1,245 MNEE</p>
+                <p className="text-2xl font-bold">
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${stats.totalSpent} MNEE`}
+                </p>
               </div>
               <ArrowUpRight className="h-8 w-8 text-red-500" />
             </div>
@@ -157,7 +115,9 @@ export function TransactionHistory() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Success Rate</p>
-                <p className="text-2xl font-bold">98.4%</p>
+                <p className="text-2xl font-bold">
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${stats.successRate}%`}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -174,61 +134,75 @@ export function TransactionHistory() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    {tx.type === 'deposit' ? (
-                      <ArrowDownRight className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <ArrowUpRight className="h-5 w-5 text-red-500" />
-                    )}
-                    {getStatusIcon(tx.status)}
-                  </div>
-                  
-                  <div className="space-y-1">
+          {error && (
+            <div className="flex items-center gap-2 text-red-500 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading transaction history...</span>
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No transactions found</p>
+              <p className="text-sm">Transaction history will appear here once you start using the vault</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {transactions.map((tx) => (
+                <div key={tx.txHash} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">{tx.purpose}</p>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(tx.status)} bg-current/10`}>
-                        {tx.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>To: {tx.recipient.length > 20 ? `${tx.recipient.slice(0, 10)}...${tx.recipient.slice(-8)}` : tx.recipient}</span>
-                      <span>{tx.timestamp}</span>
-                      {tx.block !== 'Pending' && tx.block !== 'Failed' && (
-                        <span>Block: {tx.block}</span>
+                      {tx.type === 'deposit' ? (
+                        <ArrowDownRight className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <ArrowUpRight className="h-5 w-5 text-red-500" />
                       )}
+                      {getStatusIcon(tx.status)}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{tx.purpose}</p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(tx.status)} bg-current/10`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>To: {tx.recipient.length > 20 ? `${tx.recipient.slice(0, 10)}...${tx.recipient.slice(-8)}` : tx.recipient}</span>
+                        <span>{tx.timestamp}</span>
+                        <span>Block: {tx.block}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className={`font-medium ${tx.amount.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-                      {tx.amount} MNEE
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {tx.id}
-                    </p>
-                  </div>
-                  
-                  {tx.status === 'confirmed' && (
-                    <Button variant="ghost" size="sm">
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className={`font-medium ${tx.amount.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
+                        {parseFloat(tx.amount).toFixed(4)} MNEE
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {tx.id}
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => window.open(`https://etherscan.io/tx/${tx.txHash}`, '_blank')}
+                    >
                       <ExternalLink className="h-4 w-4" />
                     </Button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 text-center">
-            <Button variant="outline">
-              Load More Transactions
-            </Button>
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

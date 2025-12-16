@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { ethers } from 'ethers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useVaultData } from '@/hooks/useVaultData'
+import { useContractWrite } from '@/hooks/useContractWrite'
 import { 
   Shield, 
   Plus, 
@@ -11,26 +14,47 @@ import {
   Settings,
   Users,
   Clock,
-  DollarSign
+  Loader2,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react'
 
 export function PaymentPolicy() {
-  const [dailyLimit, setDailyLimit] = useState('100')
-  const [whitelist, setWhitelist] = useState([
-    '0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e',
-    '0x8ba1f109551bD432803012645Hac136c30C6756M'
-  ])
+  const agentAddress = process.env.NEXT_PUBLIC_AGENT_ADDRESS
+  const contractAddress = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
+  const vaultData = useVaultData(agentAddress, contractAddress)
+  const { executeTransaction, isLoading, isSuccess, error, txHash, resetState } = useContractWrite()
+  
+  const [dailyLimit, setDailyLimit] = useState('')
   const [newAddress, setNewAddress] = useState('')
+  
+  // Update daily limit from contract data
+  useEffect(() => {
+    if (vaultData.dailyLimit && !dailyLimit) {
+      setDailyLimit(parseFloat(vaultData.dailyLimit).toString())
+    }
+  }, [vaultData.dailyLimit, dailyLimit])
 
-  const addAddress = () => {
-    if (newAddress && !whitelist.includes(newAddress)) {
-      setWhitelist([...whitelist, newAddress])
+  const updateDailyLimit = async () => {
+    if (!contractAddress || !dailyLimit) return
+    
+    const limitWei = ethers.parseUnits(dailyLimit, 18)
+    await executeTransaction(contractAddress, 'setDailyLimit', [limitWei])
+  }
+
+  const addAddress = async () => {
+    if (!contractAddress || !newAddress || !ethers.isAddress(newAddress)) return
+    
+    const result = await executeTransaction(contractAddress, 'addRecipient', [newAddress])
+    if (result.success) {
       setNewAddress('')
     }
   }
 
-  const removeAddress = (address: string) => {
-    setWhitelist(whitelist.filter(addr => addr !== address))
+  const removeAddress = async (address: string) => {
+    if (!contractAddress) return
+    
+    await executeTransaction(contractAddress, 'removeRecipient', [address])
   }
 
   return (
@@ -58,14 +82,35 @@ export function PaymentPolicy() {
                 type="number"
                 value={dailyLimit}
                 onChange={(e) => setDailyLimit(e.target.value)}
-                placeholder="Enter daily limit"
+                placeholder={vaultData.isLoading ? 'Loading...' : 'Enter daily limit'}
+                disabled={isLoading}
               />
               <span className="text-sm text-muted-foreground">MNEE</span>
             </div>
-            <Button className="w-full">
-              <Settings className="h-4 w-4 mr-2" />
-              Update Daily Limit
+            <Button 
+              className="w-full" 
+              onClick={updateDailyLimit}
+              disabled={isLoading || !dailyLimit || vaultData.isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Settings className="h-4 w-4 mr-2" />
+              )}
+              {isLoading ? 'Updating...' : 'Update Daily Limit'}
             </Button>
+            {isSuccess && (
+              <div className="flex items-center gap-2 text-green-500 text-sm">
+                <CheckCircle className="h-4 w-4" />
+                Transaction confirmed: {txHash?.slice(0, 10)}...
+              </div>
+            )}
+            {error && (
+              <div className="flex items-center gap-2 text-red-500 text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                {error}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -84,15 +129,21 @@ export function PaymentPolicy() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Daily Limit</span>
-                <span className="text-sm text-green-500">✓ Active</span>
+                <span className="text-sm text-green-500">
+                  {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.dailyLimit).toFixed(2)} MNEE`}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Whitelist</span>
-                <span className="text-sm text-green-500">✓ Active</span>
+                <span className="text-sm">Daily Spent</span>
+                <span className="text-sm text-blue-500">
+                  {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.dailySpent).toFixed(2)} MNEE`}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Balance Check</span>
-                <span className="text-sm text-green-500">✓ Active</span>
+                <span className="text-sm">Remaining</span>
+                <span className="text-sm text-green-500">
+                  {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.remainingAllowance).toFixed(2)} MNEE`}
+                </span>
               </div>
             </div>
             <div className="pt-2 border-t">
@@ -122,44 +173,65 @@ export function PaymentPolicy() {
               placeholder="Enter Ethereum address (0x...)"
               value={newAddress}
               onChange={(e) => setNewAddress(e.target.value)}
+              disabled={isLoading}
             />
-            <Button onClick={addAddress}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add
+            <Button 
+              onClick={addAddress}
+              disabled={isLoading || !newAddress || !ethers.isAddress(newAddress)}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              {isLoading ? 'Adding...' : 'Add'}
             </Button>
           </div>
 
-          {/* Address List */}
-          <div className="space-y-2">
-            {whitelist.map((address, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-mono text-sm">{address}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Added {index === 0 ? '2 days ago' : '1 week ago'}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeAddress(address)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+          {/* Note: Whitelist display requires contract extension */}
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+            <p className="text-sm text-blue-600 dark:text-blue-400">
+              📝 Note: Whitelist display requires contract event indexing.
+              Added addresses are stored on-chain but not displayed here.
+              Use block explorer to verify whitelist changes.
+            </p>
           </div>
-
-          {whitelist.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No authorized recipients</p>
-              <p className="text-sm">Add addresses to enable payments</p>
-            </div>
-          )}
         </CardContent>
       </Card>
+      
+      {/* Transaction Status */}
+      {(isSuccess || error) && (
+        <Card className={isSuccess ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              {isSuccess ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              )}
+              <span className="text-sm font-medium">
+                {isSuccess ? 'Transaction Successful' : 'Transaction Failed'}
+              </span>
+            </div>
+            {txHash && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Hash: {txHash}
+              </p>
+            )}
+            {error && (
+              <p className="text-xs text-red-600 mt-1">{error}</p>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={resetState}
+              className="mt-2"
+            >
+              Dismiss
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
