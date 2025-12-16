@@ -1,14 +1,27 @@
 {
-  "name": "agentpay-agent",
+  "name": "@agentpay/payment-agent",
   "version": "1.0.0",
-  "description": "AI payment agent for autonomous MNEE transactions",
+  "description": "AI-powered autonomous payment agent for MNEE transactions",
+  "private": true,
   "main": "paymentAgent.js",
   "scripts": {
     "start": "node paymentAgent.js",
-    "dev": "node paymentAgent.js"
+    "agent:1": "node paymentAgent.js 1",
+    "agent:2": "node paymentAgent.js 2", 
+    "agent:3": "node paymentAgent.js 3"
   },
   "dependencies": {
     "ethers": "^6.8.0",
     "dotenv": "^16.3.1"
-  }
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "payments",
+    "ai",
+    "agent",
+    "mnee"
+  ],
+  "author": "AgentPay Team",
+  "license": "MIT"
 }
