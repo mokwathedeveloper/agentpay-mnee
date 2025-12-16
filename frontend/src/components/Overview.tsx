@@ -8,7 +8,8 @@ import {
   Clock, 
   Shield,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Settings
 } from 'lucide-react'
 
 export function Overview() {
