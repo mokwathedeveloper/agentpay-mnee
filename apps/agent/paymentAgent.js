@@ -1,5 +1,5 @@
 const { ethers } = require('ethers');
-require('dotenv').config();
+require('dotenv').config({ path: '../../.env' });
 const SecureEnvValidator = require('../../lib/secureEnvValidator');
 
 // AgentPayVault ABI (minimal interface)
@@ -11,13 +11,22 @@ const VAULT_ABI = [
 ];
 
 class PaymentAgent {
-  constructor() {
+  constructor(agentId = '1') {
     // Validate environment configuration with security checks
     const validator = new SecureEnvValidator();
     validator.validateOrExit('agent');
     
-    // Load configuration from environment
-    this.privateKey = process.env.AGENT_PRIVATE_KEY;
+    // Load agent-specific configuration
+    this.agentId = agentId;
+    this.agentName = process.env[`AGENT_${agentId}_NAME`] || `Agent ${agentId}`;
+    this.privateKey = process.env[`AGENT_${agentId}_PRIVATE_KEY`] || process.env.AGENT_PRIVATE_KEY;
+    this.walletAddress = process.env[`AGENT_${agentId}_WALLET_ADDRESS`] || process.env.AGENT_WALLET_ADDRESS;
+    
+    if (!this.privateKey) {
+      throw new Error(`Agent ${agentId} private key not configured`);
+    }
+    
+    // Load shared configuration
     this.rpcUrl = process.env.RPC_URL || process.env.SEPOLIA_RPC_URL;
     this.vaultAddress = process.env.VAULT_CONTRACT_ADDRESS;
     this.mneeTokenAddress = process.env.MNEE_TOKEN_ADDRESS;
@@ -30,7 +39,7 @@ class PaymentAgent {
     // Initialize decision log
     this.decisionLog = [];
     
-    console.log(`🤖 Payment Agent initialized`);
+    console.log(`🤖 ${this.agentName} (ID: ${this.agentId}) initialized`);
     console.log(`📍 Agent Address: ${this.wallet.address}`);
     console.log(`🏦 Vault Contract: ${this.vaultAddress}`);
     this.logPolicyConfiguration();
@@ -53,6 +62,8 @@ class PaymentAgent {
   logDecision(paymentId, decision, context) {
     const logEntry = {
       timestamp: new Date().toISOString(),
+      agentId: this.agentId,
+      agentName: this.agentName,
       paymentId,
       decision: decision.allowed,
       reason: decision.reason,
@@ -61,7 +72,7 @@ class PaymentAgent {
     };
     
     this.decisionLog.push(logEntry);
-    console.log(`\n📝 Decision logged: ${decision.reason} (ID: ${paymentId})`);
+    console.log(`\n📝 [${this.agentName}] Decision logged: ${decision.reason} (ID: ${paymentId})`);
   }
 
   /**
@@ -196,7 +207,7 @@ class PaymentAgent {
   async executePayment(recipient, amount, purpose) {
     const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    console.log('\n🔄 Processing payment request...');
+    console.log(`\n🔄 [${this.agentName}] Processing payment request...`);
     console.log(`🆔 Payment ID: ${paymentId}`);
     console.log(`💰 Amount: ${amount} MNEE`);
     console.log(`📍 Recipient: ${recipient}`);
@@ -269,7 +280,7 @@ class PaymentAgent {
    * Run payment simulation
    */
   async runSimulation() {
-    console.log('🚀 Starting Payment Agent Simulation\n');
+    console.log(`🚀 Starting ${this.agentName} Simulation\n`);
     
     // Load real payment requests from environment configuration
     const paymentRequests = this.loadPaymentRequests();
@@ -303,7 +314,7 @@ class PaymentAgent {
       }
     }
     
-    console.log('\n🏁 Agent processing completed');
+    console.log(`\n🏁 ${this.agentName} processing completed`);
     this.printDecisionSummary();
   }
 
@@ -364,7 +375,8 @@ class PaymentAgent {
 
 // Run simulation if called directly
 if (require.main === module) {
-  const agent = new PaymentAgent();
+  const agentId = process.argv[2] || '1';
+  const agent = new PaymentAgent(agentId);
   agent.runSimulation().catch(console.error);
 }
 

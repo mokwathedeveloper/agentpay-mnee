@@ -10,8 +10,31 @@ if (!MNEE_TOKEN_ADDRESS) {
 // Vault Contract Address from environment
 export const VAULT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
 
-// Agent Address from environment
-export const AGENT_ADDRESS = process.env.NEXT_PUBLIC_AGENT_ADDRESS
+// Multi-Agent Addresses from environment
+export const AGENT_ADDRESSES = {
+  '1': process.env.NEXT_PUBLIC_AGENT_1_ADDRESS,
+  '2': process.env.NEXT_PUBLIC_AGENT_2_ADDRESS,
+  '3': process.env.NEXT_PUBLIC_AGENT_3_ADDRESS
+}
+
+// Legacy single agent support
+export const AGENT_ADDRESS = process.env.NEXT_PUBLIC_AGENT_ADDRESS || AGENT_ADDRESSES['1']
+
+// Get agent address by ID
+export function getAgentAddress(agentId: string): string | undefined {
+  return AGENT_ADDRESSES[agentId as keyof typeof AGENT_ADDRESSES]
+}
+
+// Get all configured agents
+export function getConfiguredAgents(): Array<{id: string, address: string, name: string}> {
+  return Object.entries(AGENT_ADDRESSES)
+    .filter(([_, address]) => address)
+    .map(([id, address]) => ({
+      id,
+      address: address!,
+      name: `Agent ${id}`
+    }))
+}
 
 // AgentPayVault ABI (complete interface)
 export const VAULT_ABI = [

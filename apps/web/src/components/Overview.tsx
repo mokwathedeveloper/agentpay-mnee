@@ -15,9 +15,12 @@ import {
   Loader2
 } from 'lucide-react'
 
-export function Overview() {
+interface OverviewProps {
+  agentAddress?: string
+}
+
+export function Overview({ agentAddress }: OverviewProps) {
   // Get real vault data from environment configuration
-  const agentAddress = process.env.NEXT_PUBLIC_AGENT_ADDRESS
   const contractAddress = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
   const vaultData = useVaultData(agentAddress, contractAddress)
   const { transactions, isLoading: txLoading } = useTransactionHistory(agentAddress, contractAddress)
