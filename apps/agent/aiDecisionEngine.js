@@ -1,10 +1,17 @@
 /**
- * AI Decision Engine for AgentPay
- * Uses machine learning algorithms to make intelligent payment decisions
+ * Advanced AI Decision Engine for AgentPay v2.0
+ * Integrates Neural Networks, Swarm Intelligence, and Quantum Risk Assessment
+ * @author AgentPay Team
+ * @version 2.0.0
  */
+
+const NeuralNetworkEngine = require('./neuralNetworkEngine');
+const SwarmIntelligence = require('./swarmIntelligence');
+const QuantumRiskEngine = require('./quantumRiskEngine');
 
 class AIDecisionEngine {
   constructor() {
+    // Legacy components (maintained for compatibility)
     this.transactionHistory = [];
     this.riskThreshold = 0.7;
     this.learningRate = 0.1;
@@ -15,12 +22,228 @@ class AIDecisionEngine {
       timePattern: 0.15,
       purpose: 0.1
     };
+    
+    // Advanced AI Components
+    this.neuralNetwork = new NeuralNetworkEngine();
+    this.swarmIntelligence = new SwarmIntelligence();
+    this.quantumRiskEngine = new QuantumRiskEngine();
+    
+    // AI System Configuration
+    this.aiMode = 'hybrid'; // 'neural', 'swarm', 'quantum', 'hybrid'
+    this.confidenceThreshold = 0.75;
+    this.quantumAdvantageThreshold = 0.3;
+    
+    // Performance Metrics
+    this.performanceMetrics = {
+      totalDecisions: 0,
+      neuralAccuracy: 0,
+      swarmConsensus: 0,
+      quantumAdvantage: 0,
+      hybridPerformance: 0
+    };
+    
+    // Real-time Learning
+    this.adaptiveLearning = true;
+    this.learningBuffer = [];
+    
+    console.log('🧠 Advanced AI Decision Engine v2.0 Initialized');
+    console.log('   🔬 Neural Network: Multi-layer perceptron with 24-16-8 architecture');
+    console.log('   🐝 Swarm Intelligence: 5-agent collaborative decision system');
+    console.log('   ⚛️  Quantum Risk Engine: 8-qubit quantum-inspired risk assessment');
   }
 
   /**
-   * AI-powered payment decision using weighted scoring algorithm
+   * Advanced AI-powered payment decision using multi-system integration
+   * Combines Neural Networks, Swarm Intelligence, and Quantum Risk Assessment
    */
   async makePaymentDecision(paymentRequest) {
+    const startTime = performance.now();
+    console.log('\n🧠 Advanced AI Analysis Starting...');
+    
+    try {
+      // Phase 1: Neural Network Analysis
+      console.log('🔬 Phase 1: Neural Network Deep Learning Analysis');
+      const neuralResult = await this.runNeuralAnalysis(paymentRequest);
+      
+      // Phase 2: Swarm Intelligence Consensus
+      console.log('🐝 Phase 2: Multi-Agent Swarm Intelligence Consensus');
+      const swarmResult = await this.runSwarmAnalysis(paymentRequest, neuralResult);
+      
+      // Phase 3: Quantum Risk Assessment
+      console.log('⚛️  Phase 3: Quantum-Inspired Risk Assessment');
+      const quantumResult = await this.runQuantumAnalysis(paymentRequest);
+      
+      // Phase 4: Hybrid Decision Fusion
+      console.log('🔮 Phase 4: Advanced Decision Fusion');
+      const hybridDecision = await this.fuseAIDecisions(neuralResult, swarmResult, quantumResult, paymentRequest);
+      
+      // Phase 5: Adaptive Learning Update
+      if (this.adaptiveLearning) {
+        this.updateAdaptiveLearning(paymentRequest, hybridDecision);
+      }
+      
+      const processingTime = performance.now() - startTime;
+      console.log(`⚡ AI Analysis Complete: ${processingTime.toFixed(2)}ms`);
+      
+      return hybridDecision;
+      
+    } catch (error) {
+      console.error('❌ AI Analysis Error:', error.message);
+      // Fallback to legacy decision
+      return this.legacyPaymentDecision(paymentRequest);
+    }
+  }
+  
+  /**
+   * Run neural network analysis
+   */
+  async runNeuralAnalysis(paymentRequest) {
+    const features = this.neuralNetwork.extractNeuralFeatures(paymentRequest, this.transactionHistory);
+    const neuralOutput = this.neuralNetwork.forward(features);
+    
+    console.log(`   🎯 Neural Confidence: ${(neuralOutput.confidence * 100).toFixed(1)}%`);
+    console.log(`   ⚠️  Neural Risk: ${(neuralOutput.risk * 100).toFixed(1)}%`);
+    console.log(`   💰 Amount Optimization: ${(neuralOutput.optimization * 100).toFixed(1)}%`);
+    
+    return {
+      type: 'neural',
+      confidence: neuralOutput.confidence,
+      risk: neuralOutput.risk,
+      optimization: neuralOutput.optimization,
+      approve: neuralOutput.risk < 0.5 && neuralOutput.confidence > 0.6,
+      reasoning: `Neural network analysis with ${(neuralOutput.confidence * 100).toFixed(1)}% confidence`,
+      features,
+      networkStats: this.neuralNetwork.getVisualizationData()
+    };
+  }
+  
+  /**
+   * Run swarm intelligence analysis
+   */
+  async runSwarmAnalysis(paymentRequest, neuralResult) {
+    const swarmDecision = await this.swarmIntelligence.makeSwarmDecision(paymentRequest, neuralResult);
+    
+    console.log(`   🤝 Swarm Agreement: ${(swarmDecision.swarmAgreement * 100).toFixed(1)}%`);
+    console.log(`   👥 Agent Consensus: ${swarmDecision.individualDecisions.filter(d => d.approve).length}/${swarmDecision.individualDecisions.length}`);
+    console.log(`   🔍 Emerging Patterns: ${swarmDecision.emergingPatterns.length}`);
+    
+    return {
+      type: 'swarm',
+      decision: swarmDecision.decision,
+      confidence: swarmDecision.confidence,
+      swarmAgreement: swarmDecision.swarmAgreement,
+      approve: swarmDecision.decision,
+      reasoning: `Swarm consensus with ${(swarmDecision.swarmAgreement * 100).toFixed(1)}% agreement`,
+      individualDecisions: swarmDecision.individualDecisions,
+      emergingPatterns: swarmDecision.emergingPatterns,
+      swarmInsights: swarmDecision.swarmInsights
+    };
+  }
+  
+  /**
+   * Run quantum risk analysis
+   */
+  async runQuantumAnalysis(paymentRequest) {
+    const quantumResult = await this.quantumRiskEngine.assessQuantumRisk(paymentRequest, this.transactionHistory);
+    
+    console.log(`   ⚛️  Quantum Risk: ${(quantumResult.quantumRisk * 100).toFixed(1)}%`);
+    console.log(`   🌊 Superposition Coherence: ${(quantumResult.superpositionCoherence * 100).toFixed(1)}%`);
+    console.log(`   🔗 Entanglement Strength: ${(quantumResult.entanglementStrength * 100).toFixed(1)}%`);
+    console.log(`   🚀 Quantum Advantage: ${(quantumResult.quantumAdvantage.total * 100).toFixed(1)}%`);
+    
+    return {
+      type: 'quantum',
+      risk: quantumResult.quantumRisk,
+      confidence: quantumResult.confidence,
+      uncertainty: quantumResult.quantumUncertainty,
+      approve: quantumResult.quantumRisk < 0.5 && quantumResult.confidence > 0.7,
+      reasoning: `Quantum analysis with ${(quantumResult.quantumAdvantage.total * 100).toFixed(1)}% quantum advantage`,
+      entanglementStrength: quantumResult.entanglementStrength,
+      superpositionCoherence: quantumResult.superpositionCoherence,
+      quantumAdvantage: quantumResult.quantumAdvantage,
+      quantumInsights: quantumResult.quantumInsights
+    };
+  }
+  
+  /**
+   * Fuse decisions from all AI systems
+   */
+  async fuseAIDecisions(neuralResult, swarmResult, quantumResult, paymentRequest) {
+    // Weighted fusion based on system confidence and performance
+    const weights = this.calculateDynamicWeights(neuralResult, swarmResult, quantumResult);
+    
+    console.log(`   ⚖️  Neural Weight: ${(weights.neural * 100).toFixed(1)}%`);
+    console.log(`   ⚖️  Swarm Weight: ${(weights.swarm * 100).toFixed(1)}%`);
+    console.log(`   ⚖️  Quantum Weight: ${(weights.quantum * 100).toFixed(1)}%`);
+    
+    // Fused confidence score
+    const fusedConfidence = 
+      weights.neural * neuralResult.confidence +
+      weights.swarm * swarmResult.confidence +
+      weights.quantum * quantumResult.confidence;
+    
+    // Fused risk score
+    const fusedRisk = 
+      weights.neural * neuralResult.risk +
+      weights.swarm * (1 - swarmResult.confidence) + // Swarm uses agreement as inverse risk
+      weights.quantum * quantumResult.risk;
+    
+    // Consensus decision
+    const approvals = [neuralResult.approve, swarmResult.approve, quantumResult.approve];
+    const approvalCount = approvals.filter(a => a).length;
+    const consensusApproval = approvalCount >= 2; // Majority vote
+    
+    // Final decision with confidence threshold
+    const finalApproval = consensusApproval && fusedConfidence > this.confidenceThreshold;
+    
+    // Generate comprehensive reasoning
+    const reasoning = this.generateHybridReasoning(neuralResult, swarmResult, quantumResult, weights, finalApproval);
+    
+    // Calculate suggested amount optimization
+    const suggestedAmount = this.calculateOptimizedAmount(paymentRequest.amount, neuralResult, swarmResult, quantumResult);
+    
+    // Update performance metrics
+    this.updatePerformanceMetrics(neuralResult, swarmResult, quantumResult, finalApproval);
+    
+    console.log(`   🎯 Final Decision: ${finalApproval ? '✅ APPROVE' : '❌ REJECT'}`);
+    console.log(`   📊 Fused Confidence: ${(fusedConfidence * 100).toFixed(1)}%`);
+    console.log(`   ⚠️  Fused Risk: ${(fusedRisk * 100).toFixed(1)}%`);
+    
+    return {
+      approve: finalApproval,
+      confidence: fusedConfidence,
+      risk: fusedRisk,
+      reasoning,
+      suggestedAmount,
+      
+      // Individual system results
+      neuralAnalysis: neuralResult,
+      swarmAnalysis: swarmResult,
+      quantumAnalysis: quantumResult,
+      
+      // Fusion metadata
+      fusionWeights: weights,
+      consensusVote: { approvals: approvalCount, total: 3 },
+      
+      // Advanced insights
+      aiInsights: this.generateAIInsights(neuralResult, swarmResult, quantumResult),
+      performanceMetrics: { ...this.performanceMetrics },
+      
+      // Visualization data
+      visualizationData: {
+        neuralNetwork: neuralResult.networkStats,
+        swarmStats: this.swarmIntelligence.getSwarmStats(),
+        quantumStats: this.quantumRiskEngine.getQuantumStats()
+      }
+    };
+  }
+  
+  /**
+   * Legacy payment decision (fallback)
+   */
+  legacyPaymentDecision(paymentRequest) {
+    console.log('⚠️  Using legacy AI decision (fallback mode)');
+    
     const { recipient, amount, purpose } = paymentRequest;
     
     // Extract features for AI analysis
@@ -37,8 +260,14 @@ class AIDecisionEngine {
       approve: confidenceScore > this.riskThreshold && riskScore < 0.5,
       confidence: confidenceScore,
       risk: riskScore,
-      reasoning: this.generateReasoning(features, confidenceScore, riskScore),
-      suggestedAmount: this.optimizeAmount(amount, features)
+      reasoning: `Legacy AI: ${this.generateReasoning(features, confidenceScore, riskScore)}`,
+      suggestedAmount: this.optimizeAmount(amount, features),
+      
+      // Indicate this is legacy mode
+      mode: 'legacy',
+      neuralAnalysis: null,
+      swarmAnalysis: null,
+      quantumAnalysis: null
     };
 
     // Learn from decision (update weights)
@@ -299,14 +528,224 @@ class AIDecisionEngine {
   }
 
   /**
-   * Get AI model statistics
+   * Calculate dynamic weights for AI system fusion
+   */
+  calculateDynamicWeights(neuralResult, swarmResult, quantumResult) {
+    // Base weights
+    let neuralWeight = 0.4;
+    let swarmWeight = 0.35;
+    let quantumWeight = 0.25;
+    
+    // Adjust based on confidence levels
+    if (neuralResult.confidence > 0.9) neuralWeight += 0.1;
+    if (swarmResult.swarmAgreement > 0.9) swarmWeight += 0.1;
+    if (quantumResult.quantumAdvantage.total > this.quantumAdvantageThreshold) quantumWeight += 0.15;
+    
+    // Adjust based on historical performance
+    neuralWeight *= (1 + this.performanceMetrics.neuralAccuracy - 0.5);
+    swarmWeight *= (1 + this.performanceMetrics.swarmConsensus - 0.5);
+    quantumWeight *= (1 + this.performanceMetrics.quantumAdvantage - 0.5);
+    
+    // Normalize weights
+    const totalWeight = neuralWeight + swarmWeight + quantumWeight;
+    
+    return {
+      neural: neuralWeight / totalWeight,
+      swarm: swarmWeight / totalWeight,
+      quantum: quantumWeight / totalWeight
+    };
+  }
+  
+  /**
+   * Generate hybrid reasoning from all AI systems
+   */
+  generateHybridReasoning(neuralResult, swarmResult, quantumResult, weights, finalApproval) {
+    const reasons = [];
+    
+    // Neural network reasoning
+    if (weights.neural > 0.3) {
+      reasons.push(`Neural: ${neuralResult.reasoning}`);
+    }
+    
+    // Swarm intelligence reasoning
+    if (weights.swarm > 0.3) {
+      reasons.push(`Swarm: ${swarmResult.reasoning}`);
+      if (swarmResult.emergingPatterns.length > 0) {
+        reasons.push(`Patterns: ${swarmResult.emergingPatterns[0].description}`);
+      }
+    }
+    
+    // Quantum reasoning
+    if (weights.quantum > 0.3) {
+      reasons.push(`Quantum: ${quantumResult.reasoning}`);
+      if (quantumResult.quantumInsights.length > 0) {
+        reasons.push(`Quantum Insight: ${quantumResult.quantumInsights[0]}`);
+      }
+    }
+    
+    // Final decision reasoning
+    const decisionReason = finalApproval 
+      ? 'Multi-AI consensus approves transaction'
+      : 'Multi-AI analysis indicates high risk';
+    
+    reasons.push(decisionReason);
+    
+    return reasons.join('; ');
+  }
+  
+  /**
+   * Calculate optimized amount using all AI systems
+   */
+  calculateOptimizedAmount(originalAmount, neuralResult, swarmResult, quantumResult) {
+    const baseAmount = parseFloat(originalAmount);
+    
+    // Neural network optimization
+    const neuralOptimization = neuralResult.optimization || 1.0;
+    
+    // Swarm optimization (based on consensus)
+    const swarmOptimization = swarmResult.swarmAgreement;
+    
+    // Quantum optimization (based on superposition coherence)
+    const quantumOptimization = quantumResult.superpositionCoherence || 1.0;
+    
+    // Weighted optimization
+    const weights = this.calculateDynamicWeights(neuralResult, swarmResult, quantumResult);
+    const optimizationFactor = 
+      weights.neural * neuralOptimization +
+      weights.swarm * swarmOptimization +
+      weights.quantum * quantumOptimization;
+    
+    const optimizedAmount = baseAmount * optimizationFactor;
+    
+    // Ensure reasonable bounds
+    return Math.max(baseAmount * 0.5, Math.min(baseAmount * 1.5, optimizedAmount));
+  }
+  
+  /**
+   * Update performance metrics
+   */
+  updatePerformanceMetrics(neuralResult, swarmResult, quantumResult, finalDecision) {
+    this.performanceMetrics.totalDecisions++;
+    
+    // Update neural accuracy (simplified)
+    this.performanceMetrics.neuralAccuracy = 
+      (this.performanceMetrics.neuralAccuracy * 0.9) + (neuralResult.confidence * 0.1);
+    
+    // Update swarm consensus
+    this.performanceMetrics.swarmConsensus = 
+      (this.performanceMetrics.swarmConsensus * 0.9) + (swarmResult.swarmAgreement * 0.1);
+    
+    // Update quantum advantage
+    this.performanceMetrics.quantumAdvantage = 
+      (this.performanceMetrics.quantumAdvantage * 0.9) + (quantumResult.quantumAdvantage.total * 0.1);
+    
+    // Update hybrid performance
+    const systemAgreement = [neuralResult.approve, swarmResult.approve, quantumResult.approve]
+      .filter(a => a === finalDecision).length / 3;
+    
+    this.performanceMetrics.hybridPerformance = 
+      (this.performanceMetrics.hybridPerformance * 0.9) + (systemAgreement * 0.1);
+  }
+  
+  /**
+   * Generate AI insights
+   */
+  generateAIInsights(neuralResult, swarmResult, quantumResult) {
+    const insights = [];
+    
+    // Neural insights
+    if (neuralResult.confidence > 0.95) {
+      insights.push('Neural network shows extremely high confidence');
+    }
+    
+    // Swarm insights
+    if (swarmResult.swarmAgreement > 0.9) {
+      insights.push('Strong multi-agent consensus achieved');
+    }
+    
+    if (swarmResult.emergingPatterns.length > 0) {
+      insights.push(`Detected ${swarmResult.emergingPatterns.length} emerging patterns`);
+    }
+    
+    // Quantum insights
+    if (quantumResult.quantumAdvantage.total > 0.5) {
+      insights.push('Significant quantum computational advantage detected');
+    }
+    
+    if (quantumResult.entanglementStrength > 0.8) {
+      insights.push('Strong quantum correlations between risk factors');
+    }
+    
+    // System disagreement insights
+    const decisions = [neuralResult.approve, swarmResult.approve, quantumResult.approve];
+    const uniqueDecisions = [...new Set(decisions)].length;
+    
+    if (uniqueDecisions === 3) {
+      insights.push('All AI systems disagree - complex decision scenario');
+    } else if (uniqueDecisions === 2) {
+      insights.push('Mixed AI consensus - moderate complexity');
+    }
+    
+    return insights;
+  }
+  
+  /**
+   * Update adaptive learning
+   */
+  updateAdaptiveLearning(paymentRequest, decision) {
+    this.learningBuffer.push({
+      request: paymentRequest,
+      decision,
+      timestamp: Date.now()
+    });
+    
+    // Train neural network periodically
+    if (this.learningBuffer.length >= 10) {
+      const trainingData = this.learningBuffer.map(item => ({
+        input: this.neuralNetwork.extractNeuralFeatures(item.request, this.transactionHistory),
+        target: [item.decision.risk, item.decision.confidence, 1.0] // Simplified target
+      }));
+      
+      this.neuralNetwork.train(trainingData, 5); // Quick training
+      this.learningBuffer = []; // Clear buffer
+    }
+  }
+  
+  /**
+   * Get comprehensive AI model statistics
    */
   getModelStats() {
     return {
+      // Legacy stats
       totalTransactions: this.transactionHistory.length,
       weights: { ...this.weights },
       riskThreshold: this.riskThreshold,
-      learningRate: this.learningRate
+      learningRate: this.learningRate,
+      
+      // Advanced AI stats
+      aiMode: this.aiMode,
+      performanceMetrics: { ...this.performanceMetrics },
+      
+      // Individual system stats
+      neuralNetwork: this.neuralNetwork.getVisualizationData(),
+      swarmIntelligence: this.swarmIntelligence.getSwarmStats(),
+      quantumRiskEngine: this.quantumRiskEngine.getQuantumStats(),
+      
+      // System health
+      adaptiveLearning: this.adaptiveLearning,
+      learningBufferSize: this.learningBuffer.length,
+      
+      // Capabilities
+      capabilities: [
+        'Multi-layer Neural Networks',
+        'Swarm Intelligence Consensus',
+        'Quantum Risk Assessment',
+        'Real-time Adaptive Learning',
+        'Dynamic Weight Optimization',
+        'Pattern Recognition',
+        'Anomaly Detection',
+        'Predictive Analytics'
+      ]
     };
   }
 }

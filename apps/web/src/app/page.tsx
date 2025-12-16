@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Overview } from '@/components/Overview'
 import { AgentSelector } from '@/components/AgentSelector'
-import AIInsights from '@/components/AIInsights'
+import AdvancedAIInsights from '@/components/AdvancedAIInsights'
 import TransactionStatus from '@/components/TransactionStatus'
 import { getAgentAddress } from '@/lib/contracts'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -43,7 +43,7 @@ export default function Home() {
             </TabsContent>
             
             <TabsContent value="ai">
-              <AIInsights selectedAgent={selectedAgentId} />
+              <AdvancedAIInsights selectedAgent={selectedAgentId} />
             </TabsContent>
           </Tabs>
         </div>
