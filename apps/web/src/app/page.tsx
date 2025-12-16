@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Overview } from '@/components/Overview'
 import { AgentSelector } from '@/components/AgentSelector'
 import AIInsights from '@/components/AIInsights'
-import JudgeGuide from '@/components/JudgeGuide'
+import TransactionStatus from '@/components/TransactionStatus'
 import { getAgentAddress } from '@/lib/contracts'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -27,7 +27,9 @@ export default function Home() {
               />
             </div>
             
-            <JudgeGuide />
+            <div className="mb-4">
+              <TransactionStatus status="confirmed" txHash="0x1234..." />
+            </div>
           </div>
           
           <Tabs defaultValue="overview" className="w-full">

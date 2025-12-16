@@ -1,6 +1,7 @@
 const { ethers } = require('ethers');
 require('dotenv').config({ path: '../../.env' });
 const EnvironmentValidator = require('../../lib/envValidator');
+const TransactionManager = require('../../lib/transactionManager');
 const AIDecisionEngine = require('./aiDecisionEngine');
 
 // AgentPayVault ABI (minimal interface)
@@ -43,6 +44,9 @@ class PaymentAgent {
     this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
     this.wallet = new ethers.Wallet(this.privateKey, this.provider);
     this.vaultContract = new ethers.Contract(this.vaultAddress, VAULT_ABI, this.wallet);
+    
+    // Initialize transaction manager
+    this.txManager = new TransactionManager(this.provider);
     
     // Initialize decision log
     this.decisionLog = [];
@@ -303,36 +307,59 @@ class PaymentAgent {
       
       console.log(`\n✅ PAYMENT APPROVED: ${decision.reason}`);
 
-      // Step 5: Execute AI-approved payment
+      // Step 5: Execute AI-approved payment with transaction tracking
       console.log('\n💳 Executing AI-approved payment...');
       const amountWei = ethers.parseUnits(finalAmount.toString(), 18);
-      const tx = await this.vaultContract.executePayment(recipient, amountWei, `AI-Approved: ${purpose}`);
       
-      // Record transaction for AI learning
-      this.aiEngine.recordTransaction({
-        recipient,
-        amount: finalAmount,
-        purpose,
-        success: true,
-        txHash: tx.hash
-      });
+      const txResult = await this.txManager.submitTransaction(
+        this.vaultContract.executePayment(recipient, amountWei, `AI-Approved: ${purpose}`),
+        `Payment: ${finalAmount} MNEE to ${recipient.slice(0,8)}...`
+      );
       
-      console.log(`📤 Transaction submitted: ${tx.hash}`);
-      console.log('⏳ Waiting for confirmation...');
-      
-      const receipt = await tx.wait();
-      console.log(`✅ Payment confirmed in block ${receipt.blockNumber}`);
-      
-      return { 
-        success: true, 
-        txHash: tx.hash, 
-        blockNumber: receipt.blockNumber,
-        decisions: decision.decisions,
-        reason: decision.reason,
-        paymentId,
-        aiAnalysis: aiDecision,
-        finalAmount
-      };
+      if (txResult.success) {
+        // Record successful transaction for AI learning
+        this.aiEngine.recordTransaction({
+          recipient,
+          amount: finalAmount,
+          purpose,
+          success: true,
+          txHash: txResult.hash
+        });
+        
+        return { 
+          success: true, 
+          txHash: txResult.hash, 
+          txId: txResult.txId,
+          blockNumber: txResult.blockNumber,
+          gasUsed: txResult.gasUsed,
+          decisions: decision.decisions,
+          reason: decision.reason,
+          paymentId,
+          aiAnalysis: aiDecision,
+          finalAmount
+        };
+      } else {
+        // Handle transaction failure with detailed error
+        console.error(`💥 Transaction failed: ${txResult.reason}`);
+        
+        // Record failed transaction for AI learning
+        this.aiEngine.recordTransaction({
+          recipient,
+          amount: finalAmount,
+          purpose,
+          success: false,
+          error: txResult.reason
+        });
+        
+        return {
+          success: false,
+          reason: txResult.reason,
+          txId: txResult.txId,
+          txHash: txResult.hash,
+          paymentId,
+          aiAnalysis: aiDecision
+        };
+      }
 
     } catch (error) {
       console.error('❌ Payment execution failed:', error.message);
