@@ -25,9 +25,41 @@ class PaymentAgent {
     this.wallet = new ethers.Wallet(this.privateKey, this.provider);
     this.vaultContract = new ethers.Contract(this.vaultAddress, VAULT_ABI, this.wallet);
     
+    // Initialize decision log
+    this.decisionLog = [];
+    
     console.log(`🤖 Payment Agent initialized`);
     console.log(`📍 Agent Address: ${this.wallet.address}`);
     console.log(`🏦 Vault Contract: ${this.vaultAddress}`);
+    this.logPolicyConfiguration();
+  }
+
+  /**
+   * Log current policy configuration for transparency
+   */
+  logPolicyConfiguration() {
+    const policy = this.loadPolicyConfig();
+    console.log('\n📋 Policy Configuration:');
+    console.log(`   Valid Purposes: ${policy.validPurposes.join(', ')}`);
+    console.log(`   Amount Range: ${policy.minAmount} - ${policy.maxAmount} MNEE`);
+    console.log(`   Request Delay: ${policy.requestDelay}ms`);
+  }
+
+  /**
+   * Log decision with timestamp and context
+   */
+  logDecision(paymentId, decision, context) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      paymentId,
+      decision: decision.allowed,
+      reason: decision.reason,
+      rules: decision.decisions.map(d => ({ rule: d.rule, passed: d.passed, data: d.data })),
+      context
+    };
+    
+    this.decisionLog.push(logEntry);
+    console.log(`\n📝 Decision logged: ${decision.reason} (ID: ${paymentId})`);
   }
 
   /**
@@ -160,7 +192,10 @@ class PaymentAgent {
    * Execute payment with policy validation
    */
   async executePayment(recipient, amount, purpose) {
+    const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     console.log('\n🔄 Processing payment request...');
+    console.log(`🆔 Payment ID: ${paymentId}`);
     console.log(`💰 Amount: ${amount} MNEE`);
     console.log(`📍 Recipient: ${recipient}`);
     console.log(`📝 Purpose: ${purpose}`);
@@ -192,9 +227,12 @@ class PaymentAgent {
         console.log(`${status} ${rule.rule}: ${rule.message}`);
       });
 
+      // Log decision for audit trail
+      this.logDecision(paymentId, decision, { recipient, amount, purpose, vaultStatus });
+      
       if (!decision.allowed) {
         console.log(`\n❌ PAYMENT REJECTED: ${decision.reason}`);
-        return { success: false, reason: decision.reason, decisions: decision.decisions };
+        return { success: false, reason: decision.reason, decisions: decision.decisions, paymentId };
       }
       
       console.log(`\n✅ PAYMENT APPROVED: ${decision.reason}`);
@@ -215,12 +253,13 @@ class PaymentAgent {
         txHash: tx.hash, 
         blockNumber: receipt.blockNumber,
         decisions: decision.decisions,
-        reason: decision.reason
+        reason: decision.reason,
+        paymentId
       };
 
     } catch (error) {
       console.error('❌ Payment execution failed:', error.message);
-      return { success: false, reason: 'EXECUTION_ERROR', error: error.message };
+      return { success: false, reason: 'EXECUTION_ERROR', error: error.message, paymentId };
     }
   }
 
@@ -263,6 +302,7 @@ class PaymentAgent {
     }
     
     console.log('\n🏁 Agent processing completed');
+    this.printDecisionSummary();
   }
 
   /**
@@ -289,6 +329,34 @@ class PaymentAgent {
     }
     
     return requests;
+  }
+
+  /**
+   * Print comprehensive decision summary for audit
+   */
+  printDecisionSummary() {
+    if (this.decisionLog.length === 0) {
+      console.log('\n📊 No decisions logged');
+      return;
+    }
+
+    console.log('\n📊 DECISION AUDIT SUMMARY');
+    console.log('=' .repeat(50));
+    
+    const approved = this.decisionLog.filter(d => d.decision).length;
+    const rejected = this.decisionLog.filter(d => !d.decision).length;
+    
+    console.log(`Total Decisions: ${this.decisionLog.length}`);
+    console.log(`Approved: ${approved}`);
+    console.log(`Rejected: ${rejected}`);
+    
+    console.log('\nDecision Breakdown:');
+    this.decisionLog.forEach((log, index) => {
+      const status = log.decision ? '✅' : '❌';
+      console.log(`${index + 1}. ${status} ${log.reason} (${log.paymentId})`);
+      console.log(`   Amount: ${log.context.amount} MNEE | Purpose: ${log.context.purpose}`);
+      console.log(`   Time: ${log.timestamp}`);
+    });
   }
 }
 
