@@ -1,0 +1,14 @@
+{
+  "name": "agentpay-agent",
+  "version": "1.0.0",
+  "description": "AI payment agent for autonomous MNEE transactions",
+  "main": "paymentAgent.js",
+  "scripts": {
+    "start": "node paymentAgent.js",
+    "dev": "node paymentAgent.js"
+  },
+  "dependencies": {
+    "ethers": "^6.8.0",
+    "dotenv": "^16.3.1"
+  }
+}

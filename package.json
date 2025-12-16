@@ -4,14 +4,15 @@
   "description": "Policy-based autonomous payments using MNEE stablecoin",
   "private": true,
   "workspaces": [
-    "frontend"
+    "apps/web",
+    "apps/agent"
   ],
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js",
-    "dev": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspace=frontend"
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
