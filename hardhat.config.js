@@ -13,7 +13,9 @@ module.exports = {
     }
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      chainId: 31337
+    },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "",
       accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
