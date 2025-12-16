@@ -1,6 +1,7 @@
 const { ethers } = require('ethers');
 require('dotenv').config({ path: '../../.env' });
 const SecureEnvValidator = require('../../lib/secureEnvValidator');
+const AIDecisionEngine = require('./aiDecisionEngine');
 
 // AgentPayVault ABI (minimal interface)
 const VAULT_ABI = [
@@ -15,6 +16,9 @@ class PaymentAgent {
     // Validate environment configuration with security checks
     const validator = new SecureEnvValidator();
     validator.validateOrExit('agent');
+    
+    // Initialize AI Decision Engine
+    this.aiEngine = new AIDecisionEngine();
     
     // Load agent-specific configuration
     this.agentId = agentId;
@@ -39,7 +43,8 @@ class PaymentAgent {
     // Initialize decision log
     this.decisionLog = [];
     
-    console.log(`🤖 ${this.agentName} (ID: ${this.agentId}) initialized`);
+    console.log(`🤖 ${this.agentName} (ID: ${this.agentId}) initialized with AI`);
+    console.log(`🧠 AI Decision Engine loaded`);
     console.log(`📍 Agent Address: ${this.wallet.address}`);
     console.log(`🏦 Vault Contract: ${this.vaultAddress}`);
     this.logPolicyConfiguration();
@@ -231,9 +236,40 @@ class PaymentAgent {
       }
       console.log('✅ Recipient is whitelisted');
 
-      // Step 3: Execute policy-driven decision
-      console.log('\n🤖 Running policy-driven payment validation...');
-      const decision = this.executePaymentPolicy(amount, recipient, purpose, vaultStatus);
+      // Step 3: AI Decision Making
+      console.log('\n🧠 AI analyzing payment request...');
+      const aiDecision = await this.aiEngine.makePaymentDecision({
+        recipient,
+        amount: parseFloat(amount),
+        purpose
+      });
+      
+      console.log(`🎯 AI Confidence: ${(aiDecision.confidence * 100).toFixed(1)}%`);
+      console.log(`⚠️  Risk Score: ${(aiDecision.risk * 100).toFixed(1)}%`);
+      console.log(`💡 AI Reasoning: ${aiDecision.reasoning}`);
+      
+      if (!aiDecision.approve) {
+        console.log(`❌ AI REJECTED: ${aiDecision.reasoning}`);
+        return { 
+          success: false, 
+          reason: `AI Decision: ${aiDecision.reasoning}`,
+          aiAnalysis: aiDecision,
+          paymentId
+        };
+      }
+      
+      // Use AI-optimized amount if different
+      const finalAmount = aiDecision.suggestedAmount !== parseFloat(amount) 
+        ? aiDecision.suggestedAmount 
+        : amount;
+      
+      if (finalAmount !== parseFloat(amount)) {
+        console.log(`🔧 AI optimized amount: ${amount} → ${finalAmount} MNEE`);
+      }
+
+      // Step 4: Execute policy-driven decision with AI-approved amount
+      console.log('\n🤖 Running policy validation on AI-approved payment...');
+      const decision = this.executePaymentPolicy(finalAmount.toString(), recipient, purpose, vaultStatus);
       
       decision.decisions.forEach(rule => {
         const status = rule.passed ? '✅' : '❌';
@@ -250,10 +286,19 @@ class PaymentAgent {
       
       console.log(`\n✅ PAYMENT APPROVED: ${decision.reason}`);
 
-      // Step 4: Execute payment
-      console.log('\n💳 Executing payment...');
-      const amountWei = ethers.parseUnits(amount.toString(), 18);
-      const tx = await this.vaultContract.executePayment(recipient, amountWei, purpose);
+      // Step 5: Execute AI-approved payment
+      console.log('\n💳 Executing AI-approved payment...');
+      const amountWei = ethers.parseUnits(finalAmount.toString(), 18);
+      const tx = await this.vaultContract.executePayment(recipient, amountWei, `AI-Approved: ${purpose}`);
+      
+      // Record transaction for AI learning
+      this.aiEngine.recordTransaction({
+        recipient,
+        amount: finalAmount,
+        purpose,
+        success: true,
+        txHash: tx.hash
+      });
       
       console.log(`📤 Transaction submitted: ${tx.hash}`);
       console.log('⏳ Waiting for confirmation...');
@@ -267,11 +312,23 @@ class PaymentAgent {
         blockNumber: receipt.blockNumber,
         decisions: decision.decisions,
         reason: decision.reason,
-        paymentId
+        paymentId,
+        aiAnalysis: aiDecision,
+        finalAmount
       };
 
     } catch (error) {
       console.error('❌ Payment execution failed:', error.message);
+      
+      // Record failed transaction for AI learning
+      this.aiEngine.recordTransaction({
+        recipient,
+        amount: parseFloat(amount),
+        purpose,
+        success: false,
+        error: error.message
+      });
+      
       return { success: false, reason: 'EXECUTION_ERROR', error: error.message, paymentId };
     }
   }
@@ -280,7 +337,8 @@ class PaymentAgent {
    * Run payment simulation
    */
   async runSimulation() {
-    console.log(`🚀 Starting ${this.agentName} Simulation\n`);
+    console.log(`🚀 Starting AI-Powered ${this.agentName} Simulation\n`);
+    console.log(`🧠 AI Model Stats:`, this.aiEngine.getModelStats());
     
     // Load real payment requests from environment configuration
     const paymentRequests = this.loadPaymentRequests();
@@ -314,7 +372,8 @@ class PaymentAgent {
       }
     }
     
-    console.log(`\n🏁 ${this.agentName} processing completed`);
+    console.log(`\n🏁 AI-Powered ${this.agentName} processing completed`);
+    console.log(`🧠 Final AI Model:`, this.aiEngine.getModelStats());
     this.printDecisionSummary();
   }
 
@@ -380,4 +439,4 @@ if (require.main === module) {
   agent.runSimulation().catch(console.error);
 }
 
-module.exports = PaymentAgent;
+module.exports = { PaymentAgent, AIDecisionEngine };
