@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { 
@@ -12,14 +13,14 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Overview', icon: LayoutDashboard, href: '/', current: true },
-  { name: 'Payment Policy', icon: Settings, href: '/policy', current: false },
-  { name: 'Execute Payment', icon: Send, href: '/payment', current: false },
-  { name: 'Transaction History', icon: History, href: '/history', current: false },
+  { name: 'Overview', icon: LayoutDashboard, href: '/' },
+  { name: 'Payment Policy', icon: Settings, href: '/policy' },
+  { name: 'Execute Payment', icon: Send, href: '/payment' },
+  { name: 'Transaction History', icon: History, href: '/history' },
 ]
 
 export function Sidebar() {
-  const [current, setCurrent] = useState('Overview')
+  const pathname = usePathname()
 
   return (
     <div className="flex flex-col w-64 bg-card border-r">
@@ -33,18 +34,18 @@ export function Sidebar() {
       
       <nav className="flex-1 p-4 space-y-2">
         {navigation.map((item) => (
-          <Button
-            key={item.name}
-            variant={current === item.name ? 'default' : 'ghost'}
-            className={cn(
-              'w-full justify-start gap-3',
-              current === item.name && 'bg-primary text-primary-foreground'
-            )}
-            onClick={() => setCurrent(item.name)}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.name}
-          </Button>
+          <Link key={item.name} href={item.href}>
+            <Button
+              variant={pathname === item.href ? 'default' : 'ghost'}
+              className={cn(
+                'w-full justify-start gap-3',
+                pathname === item.href && 'bg-primary text-primary-foreground'
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.name}
+            </Button>
+          </Link>
         ))}
       </nav>
     </div>
