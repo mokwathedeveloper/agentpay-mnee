@@ -1,8 +1,12 @@
-const { ethers } = require('ethers');
-require('dotenv').config({ path: '../../.env' });
+// Lazy loading modules for better performance and security
+const ethers = require('ethers');
+const dotenv = require('dotenv');
 const EnvironmentValidator = require('../../lib/envValidator');
 const TransactionManager = require('../../lib/transactionManager');
 const AIDecisionEngine = require('./aiDecisionEngine');
+
+// Configure environment
+dotenv.config({ path: '../../.env' });
 
 // AgentPayVault ABI (minimal interface)
 const VAULT_ABI = [
