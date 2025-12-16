@@ -52,13 +52,16 @@ class PaymentAgent {
     // Initialize transaction manager
     this.txManager = new TransactionManager(this.provider);
     
-    // Initialize decision log
+    // Initialize decision log and logger
     this.decisionLog = [];
+    this.logger = require('../../lib/logger').createLogger(`PaymentAgent-${agentId}`);
     
-    console.log(`🤖 ${this.agentName} (ID: ${this.agentId}) initialized with AI`);
-    console.log(`🧠 AI Decision Engine loaded`);
-    console.log(`📍 Agent Address: ${this.wallet.address}`);
-    console.log(`🏦 Vault Contract: ${this.vaultAddress}`);
+    this.logger.info('Agent initialized', {
+      agentName: this.agentName,
+      agentId: this.agentId,
+      agentAddress: require('../../lib/contractUtils').maskAddress(this.wallet.address),
+      vaultContract: require('../../lib/contractUtils').maskAddress(this.vaultAddress)
+    });
     this.logPolicyConfiguration();
   }
 
@@ -96,18 +99,24 @@ class PaymentAgent {
    * Query agent's current vault status
    */
   async getVaultStatus() {
+    const ContractUtils = require('../../lib/contractUtils');
     try {
-      const [balance, dailyLimit, dailySpent] = await this.vaultContract.getAgentInfo(this.wallet.address);
-      const remainingAllowance = await this.vaultContract.getRemainingDailyAllowance(this.wallet.address);
+      const vaultData = await ContractUtils.safeContractCall(
+        this.vaultContract, 
+        'getAgentInfo', 
+        [this.wallet.address]
+      );
+      const remainingAllowance = await ContractUtils.safeContractCall(
+        this.vaultContract,
+        'getRemainingDailyAllowance',
+        [this.wallet.address]
+      );
       
-      return {
-        balance: ethers.formatUnits(balance, 18),
-        dailyLimit: ethers.formatUnits(dailyLimit, 18),
-        dailySpent: ethers.formatUnits(dailySpent, 18),
-        remainingAllowance: ethers.formatUnits(remainingAllowance, 18)
-      };
+      const status = ContractUtils.formatVaultStatus(vaultData);
+      status.remainingAllowance = ContractUtils.formatTokenAmount(remainingAllowance);
+      return status;
     } catch (error) {
-      console.error('❌ Failed to query vault status:', error.message);
+      this.logger.error('Failed to query vault status', { error: error.message });
       throw error;
     }
   }
@@ -116,10 +125,19 @@ class PaymentAgent {
    * Check if recipient is whitelisted
    */
   async isRecipientWhitelisted(recipient) {
+    const ContractUtils = require('../../lib/contractUtils');
     try {
-      return await this.vaultContract.isWhitelisted(this.wallet.address, recipient);
+      ContractUtils.validateAddress(recipient);
+      return await ContractUtils.safeContractCall(
+        this.vaultContract,
+        'isWhitelisted',
+        [this.wallet.address, recipient]
+      );
     } catch (error) {
-      console.error('❌ Failed to check whitelist status:', error.message);
+      this.logger.error('Failed to check whitelist status', { 
+        recipient: ContractUtils.maskAddress(recipient),
+        error: error.message 
+      });
       return false;
     }
   }
