@@ -11,14 +11,14 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js",
-    "deploy:local": "hardhat run scripts/deploy-local-for-demo.js --network hardhat",
     "deploy:sepolia": "hardhat run scripts/deploy-testnet.js --network sepolia",
     "verify:sepolia": "hardhat verify --network sepolia",
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
-    "validate-env": "node scripts/validate-env.js",
-    "validate-deployment": "node scripts/validate-env.js deployment",
-    "validate-agent": "node scripts/validate-env.js agent"
+    "validate-env": "node scripts/validate-production-env.js",
+    "validate-deployment": "node scripts/validate-production-env.js deployment",
+    "validate-agent": "node scripts/validate-production-env.js agent",
+    "validate-frontend": "node scripts/validate-production-env.js frontend"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

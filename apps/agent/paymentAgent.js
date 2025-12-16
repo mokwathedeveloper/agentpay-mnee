@@ -1,6 +1,6 @@
 const { ethers } = require('ethers');
 require('dotenv').config({ path: '../../.env' });
-const SecureEnvValidator = require('../../lib/secureEnvValidator');
+const EnvironmentValidator = require('../../lib/envValidator');
 const AIDecisionEngine = require('./aiDecisionEngine');
 
 // AgentPayVault ABI (minimal interface)
@@ -13,27 +13,31 @@ const VAULT_ABI = [
 
 class PaymentAgent {
   constructor(agentId = '1') {
-    // Validate environment configuration with security checks
-    const validator = new SecureEnvValidator();
+    // Validate production environment configuration
+    const validator = new EnvironmentValidator();
     validator.validateOrExit('agent');
     
     // Initialize AI Decision Engine
     this.aiEngine = new AIDecisionEngine();
     
-    // Load agent-specific configuration
+    // Load agent-specific configuration (no fallbacks)
     this.agentId = agentId;
-    this.agentName = process.env[`AGENT_${agentId}_NAME`] || `Agent ${agentId}`;
-    this.privateKey = process.env[`AGENT_${agentId}_PRIVATE_KEY`] || process.env.AGENT_PRIVATE_KEY;
-    this.walletAddress = process.env[`AGENT_${agentId}_WALLET_ADDRESS`] || process.env.AGENT_WALLET_ADDRESS;
+    this.agentName = process.env[`AGENT_${agentId}_NAME`];
+    this.privateKey = process.env[`AGENT_${agentId}_PRIVATE_KEY`];
+    this.walletAddress = process.env[`AGENT_${agentId}_WALLET_ADDRESS`];
     
-    if (!this.privateKey) {
-      throw new Error(`Agent ${agentId} private key not configured`);
+    if (!this.privateKey || !this.walletAddress || !this.agentName) {
+      throw new Error(`Agent ${agentId} configuration incomplete - check environment variables`);
     }
     
-    // Load shared configuration
-    this.rpcUrl = process.env.RPC_URL || process.env.SEPOLIA_RPC_URL;
+    // Load shared configuration (no fallbacks)
+    this.rpcUrl = process.env.RPC_URL;
     this.vaultAddress = process.env.VAULT_CONTRACT_ADDRESS;
     this.mneeTokenAddress = process.env.MNEE_TOKEN_ADDRESS;
+    
+    if (!this.rpcUrl || !this.vaultAddress || !this.mneeTokenAddress) {
+      throw new Error('Missing required configuration - check RPC_URL, VAULT_CONTRACT_ADDRESS, MNEE_TOKEN_ADDRESS');
+    }
 
     // Initialize ethers components
     this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
