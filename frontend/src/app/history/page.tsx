@@ -1,12 +1,12 @@
 import { Sidebar } from '@/components/Sidebar'
-import { Overview } from '@/components/Overview'
+import { TransactionHistory } from '@/components/TransactionHistory'
 
-export default function Home() {
+export default function HistoryPage() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        <Overview />
+        <TransactionHistory />
       </main>
     </div>
   )
