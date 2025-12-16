@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useVaultData } from '@/hooks/useVaultData'
 import { 
   Wallet, 
   TrendingUp, 
@@ -13,6 +14,10 @@ import {
 } from 'lucide-react'
 
 export function Overview() {
+  // Get real vault data from environment configuration
+  const agentAddress = process.env.NEXT_PUBLIC_AGENT_ADDRESS
+  const contractAddress = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
+  const vaultData = useVaultData(agentAddress, contractAddress)
   return (
     <div className="p-8 space-y-8">
       <div>
@@ -28,9 +33,11 @@ export function Overview() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,250.00 MNEE</div>
+            <div className="text-2xl font-bold">
+              {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.balance).toFixed(2)} MNEE`}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +2.5% from last month
+              {vaultData.error ? 'Error loading data' : 'Live on-chain balance'}
             </p>
           </CardContent>
         </Card>
@@ -41,9 +48,11 @@ export function Overview() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">100.00 MNEE</div>
+            <div className="text-2xl font-bold">
+              {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.dailyLimit).toFixed(2)} MNEE`}
+            </div>
             <p className="text-xs text-muted-foreground">
-              75.00 MNEE remaining today
+              {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.remainingAllowance).toFixed(2)} MNEE remaining today`}
             </p>
           </CardContent>
         </Card>
@@ -54,9 +63,11 @@ export function Overview() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">25.00 MNEE</div>
+            <div className="text-2xl font-bold">
+              {vaultData.isLoading ? 'Loading...' : `${parseFloat(vaultData.dailySpent).toFixed(2)} MNEE`}
+            </div>
             <p className="text-xs text-muted-foreground">
-              3 transactions completed
+              {vaultData.isLoading ? 'Loading...' : 'Spent today from on-chain data'}
             </p>
           </CardContent>
         </Card>

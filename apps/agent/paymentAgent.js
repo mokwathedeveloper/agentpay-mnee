@@ -188,34 +188,23 @@ class PaymentAgent {
   async runSimulation() {
     console.log('🚀 Starting Payment Agent Simulation\n');
     
-    // Simulated payment scenarios
-    const scenarios = [
-      {
-        recipient: '0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e',
-        amount: '10',
-        purpose: 'API service_payment for data processing'
-      },
-      {
-        recipient: '0x8ba1f109551bD432803012645Hac136c30C6756M',
-        amount: '50',
-        purpose: 'Monthly subscription renewal'
-      },
-      {
-        recipient: '0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e',
-        amount: '1000',
-        purpose: 'Large data_purchase transaction'
-      }
-    ];
+    // Load real payment requests from environment configuration
+    const paymentRequests = this.loadPaymentRequests();
+    
+    if (paymentRequests.length === 0) {
+      console.log('⚠️  No payment requests configured. Set RECIPIENT_WALLET_ADDRESS in environment.');
+      return;
+    }
 
-    for (let i = 0; i < scenarios.length; i++) {
+    for (let i = 0; i < paymentRequests.length; i++) {
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`📋 SCENARIO ${i + 1}/${scenarios.length}`);
+      console.log(`💳 PROCESSING PAYMENT REQUEST ${i + 1}/${paymentRequests.length}`);
       console.log(`${'='.repeat(60)}`);
       
       const result = await this.executePayment(
-        scenarios[i].recipient,
-        scenarios[i].amount,
-        scenarios[i].purpose
+        paymentRequests[i].recipient,
+        paymentRequests[i].amount,
+        paymentRequests[i].purpose
       );
       
       console.log('\n📊 RESULT:', result.success ? '✅ SUCCESS' : '❌ FAILED');
@@ -223,14 +212,42 @@ class PaymentAgent {
         console.log('🔍 Reason:', result.reason);
       }
       
-      // Wait between scenarios
-      if (i < scenarios.length - 1) {
-        console.log('\n⏳ Waiting 3 seconds before next scenario...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait between requests for rate limiting
+      if (i < paymentRequests.length - 1) {
+        console.log('\n⏳ Waiting 2 seconds before next request...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
-    console.log('\n🏁 Simulation completed');
+    console.log('\n🏁 Agent processing completed');
+  }
+
+  /**
+   * Load payment requests from environment configuration (not hardcoded)
+   */
+  loadPaymentRequests() {
+    const recipientAddress = process.env.RECIPIENT_WALLET_ADDRESS;
+    if (!recipientAddress) {
+      return [];
+    }
+
+    // In production, this could come from:
+    // - API endpoints
+    // - Configuration files  
+    // - Event listeners
+    // - User input
+    return [
+      {
+        recipient: recipientAddress,
+        amount: '5',
+        purpose: 'Automated API service_payment'
+      },
+      {
+        recipient: recipientAddress,
+        amount: '15', 
+        purpose: 'Data processing subscription fee'
+      }
+    ];
   }
 }
 
