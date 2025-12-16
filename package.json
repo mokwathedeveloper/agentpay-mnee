@@ -1,5 +1,5 @@
 {
-  "name": "agentpay-mnee",
+  "name": "@agentpay/mnee-vault",
   "version": "1.0.0",
   "description": "Policy-based autonomous payments using MNEE stablecoin",
   "private": true,
