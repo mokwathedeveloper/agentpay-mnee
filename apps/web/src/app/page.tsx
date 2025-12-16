@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Overview } from '@/components/Overview'
 import { AgentSelector } from '@/components/AgentSelector'
 import AIInsights from '@/components/AIInsights'
+import JudgeGuide from '@/components/JudgeGuide'
 import { getAgentAddress } from '@/lib/contracts'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -17,12 +18,16 @@ export default function Home() {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">🧠 AI-Powered AgentPay Dashboard</h1>
-            <AgentSelector 
-              selectedAgentId={selectedAgentId}
-              onAgentChange={setSelectedAgentId}
-            />
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold">🧠 AI-Powered AgentPay Dashboard</h1>
+              <AgentSelector 
+                selectedAgentId={selectedAgentId}
+                onAgentChange={setSelectedAgentId}
+              />
+            </div>
+            
+            <JudgeGuide />
           </div>
           
           <Tabs defaultValue="overview" className="w-full">
