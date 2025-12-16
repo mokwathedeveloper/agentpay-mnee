@@ -6,7 +6,7 @@ import { getVaultContract } from '@/lib/contracts'
 
 interface Transaction {
   id: string
-  type: 'payment' | 'deposit'
+  type: 'payment' | 'deposit' | 'withdrawal'
   amount: string
   recipient: string
   purpose: string
@@ -52,16 +52,20 @@ export function useTransactionHistory(agentAddress?: string, contractAddress?: s
         const provider = new ethers.BrowserProvider(window.ethereum)
         const contract = getVaultContract(provider, contractAddress)
 
-        // Get recent PaymentExecuted events
+        // Get recent contract events
         const currentBlock = await provider.getBlockNumber()
         const fromBlock = Math.max(0, currentBlock - 10000) // Last ~10k blocks
 
         const paymentFilter = contract.filters.PaymentExecuted(agentAddress)
         const depositFilter = contract.filters.Deposited(agentAddress)
+        const withdrawFilter = contract.filters.Withdrawn(agentAddress)
+        const limitFilter = contract.filters.DailyLimitSet(agentAddress)
 
-        const [paymentEvents, depositEvents] = await Promise.all([
+        const [paymentEvents, depositEvents, withdrawEvents, limitEvents] = await Promise.all([
           contract.queryFilter(paymentFilter, fromBlock, currentBlock),
-          contract.queryFilter(depositFilter, fromBlock, currentBlock)
+          contract.queryFilter(depositFilter, fromBlock, currentBlock),
+          contract.queryFilter(withdrawFilter, fromBlock, currentBlock),
+          contract.queryFilter(limitFilter, fromBlock, currentBlock)
         ])
 
         // Process payment events
@@ -104,8 +108,28 @@ export function useTransactionHistory(agentAddress?: string, contractAddress?: s
           })
         )
 
+        // Process withdrawal events
+        const withdrawTxs = await Promise.all(
+          withdrawEvents.map(async (event) => {
+            const block = await provider.getBlock(event.blockNumber)
+            const args = (event as any).args
+            
+            return {
+              id: event.transactionHash.slice(0, 10) + '...',
+              type: 'withdrawal' as const,
+              amount: `-${ethers.formatUnits(args.amount, 18)}`,
+              recipient: 'Vault Withdrawal',
+              purpose: 'Funds withdrawal',
+              status: 'confirmed' as const,
+              timestamp: formatTimestamp(block?.timestamp || 0),
+              block: event.blockNumber.toString(),
+              txHash: event.transactionHash
+            }
+          })
+        )
+
         // Combine and sort by block number (newest first)
-        const allTxs = [...paymentTxs, ...depositTxs].sort(
+        const allTxs = [...paymentTxs, ...depositTxs, ...withdrawTxs].sort(
           (a, b) => parseInt(b.block) - parseInt(a.block)
         )
 
