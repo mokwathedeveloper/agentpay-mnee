@@ -1,7 +1,10 @@
 import { ethers } from 'ethers'
 
-// MNEE Token Contract Address
-export const MNEE_TOKEN_ADDRESS = '0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF'
+// MNEE Token Contract Address from environment
+export const MNEE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_MNEE_TOKEN_ADDRESS || '0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF'
+
+// RPC URL from environment
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL
 
 // Extend Window interface for ethereum
 declare global {

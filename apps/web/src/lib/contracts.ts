@@ -1,7 +1,13 @@
 import { ethers } from 'ethers'
 
-// MNEE Token Contract Address
-export const MNEE_TOKEN_ADDRESS = '0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF'
+// MNEE Token Contract Address from environment
+export const MNEE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_MNEE_TOKEN_ADDRESS || '0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF'
+
+// Vault Contract Address from environment
+export const VAULT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
+
+// Agent Address from environment
+export const AGENT_ADDRESS = process.env.NEXT_PUBLIC_AGENT_ADDRESS
 
 // AgentPayVault ABI (complete interface)
 export const VAULT_ABI = [
