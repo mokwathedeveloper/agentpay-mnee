@@ -68,7 +68,7 @@ export function useTransactionHistory(agentAddress?: string, contractAddress?: s
         const paymentTxs = await Promise.all(
           paymentEvents.map(async (event) => {
             const block = await provider.getBlock(event.blockNumber)
-            const args = event.args as any
+            const args = (event as any).args
             
             return {
               id: event.transactionHash.slice(0, 10) + '...',
@@ -88,7 +88,7 @@ export function useTransactionHistory(agentAddress?: string, contractAddress?: s
         const depositTxs = await Promise.all(
           depositEvents.map(async (event) => {
             const block = await provider.getBlock(event.blockNumber)
-            const args = event.args as any
+            const args = (event as any).args
             
             return {
               id: event.transactionHash.slice(0, 10) + '...',
