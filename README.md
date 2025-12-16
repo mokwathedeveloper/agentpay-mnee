@@ -57,6 +57,14 @@ The AgentPay system consists of three core components working together:
 - Ethereum wallet with MNEE tokens
 - RPC endpoint (Alchemy, Infura, or local node)
 
+### 🌐 Live Deployment
+
+**Network**: Local Hardhat (Demo)
+**Contract Address**: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+**MNEE Token**: `0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF`
+
+> **For Judges**: This demo runs on local Hardhat network. For production deployment to Sepolia testnet, use `npm run deploy:sepolia` with funded wallet.
+
 ### Installation
 
 ```bash
@@ -147,6 +155,33 @@ cd apps/agent && node paymentAgent.js
 - **Network**: Ethereum Mainnet
 - **Standard**: ERC-20
 - **Decimals**: 18
+
+### 🔍 How to Verify (For Judges)
+
+1. **Contract Verification**: 
+   - Local demo contract deployed at `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+   - Source code available in `/contracts/AgentPayVault.sol`
+   - Uses real MNEE token address for mainnet compatibility
+
+2. **Test the System**:
+   ```bash
+   # Start local network
+   npx hardhat node
+   
+   # Deploy contracts
+   npm run deploy:local
+   
+   # Start dashboard
+   cd apps/web && npm run dev
+   
+   # Run AI agent
+   cd apps/agent && node paymentAgent.js 1
+   ```
+
+3. **Verify AI Features**:
+   - Check AI Insights tab in dashboard
+   - Run agent to see ML decision making
+   - Review transaction logs for AI reasoning
 
 ### How MNEE Powers AgentPay
 
