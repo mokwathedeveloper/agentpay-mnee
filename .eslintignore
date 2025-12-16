@@ -1,0 +1,15 @@
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.tsbuildinfo
+coverage/
+
+# Environment files
+.env*

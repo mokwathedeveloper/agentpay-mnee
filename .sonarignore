@@ -1,0 +1,14 @@
+# Build outputs and generated files
+**/.next/**
+**/out/**
+**/dist/**
+**/build/**
+**/coverage/**
+**/*.tsbuildinfo
+
+# Dependencies
+**/node_modules/**
+
+# Environment and config
+**/.env*
+**/.git/**
