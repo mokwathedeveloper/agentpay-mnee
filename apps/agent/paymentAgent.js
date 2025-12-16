@@ -117,59 +117,72 @@ class PaymentAgent {
   }
 
   /**
-   * Load policy configuration from environment
+   * Load policy configuration from environment (no fallbacks)
    */
   loadPolicyConfig() {
+    const validPurposes = process.env.AGENT_VALID_PURPOSES;
+    const minAmount = process.env.AGENT_MIN_AMOUNT;
+    const maxAmount = process.env.AGENT_MAX_AMOUNT;
+    const requestDelay = process.env.AGENT_REQUEST_DELAY_MS;
+    
+    if (!validPurposes || !minAmount || !maxAmount || !requestDelay) {
+      throw new Error('Missing policy configuration - check AGENT_VALID_PURPOSES, AGENT_MIN_AMOUNT, AGENT_MAX_AMOUNT, AGENT_REQUEST_DELAY_MS');
+    }
+    
     return {
-      validPurposes: (process.env.AGENT_VALID_PURPOSES || 'service_payment,api_usage,data_purchase,subscription').split(','),
-      minAmount: parseFloat(process.env.AGENT_MIN_AMOUNT || '0.1'),
-      maxAmount: parseFloat(process.env.AGENT_MAX_AMOUNT || '1000'),
-      requestDelay: parseInt(process.env.AGENT_REQUEST_DELAY_MS || '2000')
+      validPurposes: validPurposes.split(','),
+      minAmount: parseFloat(minAmount),
+      maxAmount: parseFloat(maxAmount),
+      requestDelay: parseInt(requestDelay)
     };
   }
 
   /**
-   * Execute policy-driven decision making for payment
+   * Execute contract-driven decision making for payment
+   * All limits come from on-chain state, not configuration
    */
   executePaymentPolicy(amount, recipient, purpose, vaultStatus) {
     const policy = this.loadPolicyConfig();
     const decisions = [];
     const amountNum = parseFloat(amount);
     
-    // Policy 1: Check sufficient balance
-    const balanceNum = parseFloat(vaultStatus.balance);
-    if (balanceNum < amountNum) {
+    // Use contract state as source of truth for limits
+    const contractBalance = parseFloat(vaultStatus.balance);
+    const contractDailyLimit = parseFloat(vaultStatus.dailyLimit);
+    const contractRemaining = parseFloat(vaultStatus.remainingAllowance);
+    
+    // Policy 1: Check sufficient balance (contract state)
+    if (contractBalance < amountNum) {
       decisions.push({
         rule: 'INSUFFICIENT_BALANCE',
         passed: false,
-        message: `Balance ${vaultStatus.balance} MNEE < Required ${amount} MNEE`,
-        data: { balance: balanceNum, required: amountNum }
+        message: `Contract balance ${contractBalance} MNEE < Required ${amount} MNEE`,
+        data: { contractBalance, required: amountNum }
       });
       return { allowed: false, decisions, reason: 'INSUFFICIENT_BALANCE' };
     }
     decisions.push({
       rule: 'SUFFICIENT_BALANCE',
       passed: true,
-      message: `Balance ${vaultStatus.balance} MNEE >= Required ${amount} MNEE`,
-      data: { balance: balanceNum, required: amountNum }
+      message: `Contract balance ${contractBalance} MNEE >= Required ${amount} MNEE`,
+      data: { contractBalance, required: amountNum }
     });
 
-    // Policy 2: Check daily limit
-    const remainingNum = parseFloat(vaultStatus.remainingAllowance);
-    if (remainingNum < amountNum) {
+    // Policy 2: Check daily limit (contract state)
+    if (contractRemaining < amountNum) {
       decisions.push({
         rule: 'DAILY_LIMIT_EXCEEDED',
         passed: false,
-        message: `Remaining allowance ${vaultStatus.remainingAllowance} MNEE < Required ${amount} MNEE`,
-        data: { remaining: remainingNum, required: amountNum }
+        message: `Contract remaining allowance ${contractRemaining} MNEE < Required ${amount} MNEE`,
+        data: { contractRemaining, contractDailyLimit, required: amountNum }
       });
       return { allowed: false, decisions, reason: 'DAILY_LIMIT_EXCEEDED' };
     }
     decisions.push({
       rule: 'WITHIN_DAILY_LIMIT',
       passed: true,
-      message: `Remaining allowance ${vaultStatus.remainingAllowance} MNEE >= Required ${amount} MNEE`,
-      data: { remaining: remainingNum, required: amountNum }
+      message: `Contract remaining allowance ${contractRemaining} MNEE >= Required ${amount} MNEE`,
+      data: { contractRemaining, contractDailyLimit, required: amountNum }
     });
 
     // Policy 3: Amount range validation
@@ -224,21 +237,21 @@ class PaymentAgent {
 
     try {
       // Step 1: Query vault status
-      console.log('\n📊 Querying vault status...');
+      console.log('\n📊 Querying on-chain vault state...');
       const vaultStatus = await this.getVaultStatus();
-      console.log(`💳 Balance: ${vaultStatus.balance} MNEE`);
-      console.log(`📈 Daily Limit: ${vaultStatus.dailyLimit} MNEE`);
-      console.log(`💸 Daily Spent: ${vaultStatus.dailySpent} MNEE`);
-      console.log(`⏳ Remaining Allowance: ${vaultStatus.remainingAllowance} MNEE`);
+      console.log(`💳 Contract Balance: ${vaultStatus.balance} MNEE`);
+      console.log(`📈 Contract Daily Limit: ${vaultStatus.dailyLimit} MNEE`);
+      console.log(`💸 Contract Daily Spent: ${vaultStatus.dailySpent} MNEE`);
+      console.log(`⏳ Contract Remaining Allowance: ${vaultStatus.remainingAllowance} MNEE`);
 
-      // Step 2: Check whitelist
-      console.log('\n🔍 Checking recipient whitelist...');
+      // Step 2: Check contract whitelist
+      console.log('\n🔍 Checking contract whitelist state...');
       const isWhitelisted = await this.isRecipientWhitelisted(recipient);
       if (!isWhitelisted) {
-        console.log('❌ PAYMENT REJECTED: Recipient not whitelisted');
+        console.log('❌ PAYMENT REJECTED: Recipient not in contract whitelist');
         return { success: false, reason: 'RECIPIENT_NOT_WHITELISTED' };
       }
-      console.log('✅ Recipient is whitelisted');
+      console.log('✅ Recipient whitelisted in contract');
 
       // Step 3: AI Decision Making
       console.log('\n🧠 AI analyzing payment request...');
