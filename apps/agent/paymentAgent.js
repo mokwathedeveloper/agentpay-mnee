@@ -237,11 +237,14 @@ class PaymentAgent {
   async executePayment(recipient, amount, purpose) {
     const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    console.log(`\n🔄 [${this.agentName}] Processing payment request...`);
-    console.log(`🆔 Payment ID: ${paymentId}`);
-    console.log(`💰 Amount: ${amount} MNEE`);
-    console.log(`📍 Recipient: ${recipient}`);
-    console.log(`📝 Purpose: ${purpose}`);
+    const logger = require('../../lib/logger').createLogger('PaymentAgent');
+    logger.info('Processing payment request', {
+      agentName: this.agentName,
+      paymentId,
+      amount,
+      recipient: recipient.slice(0, 8) + '...',
+      purpose
+    });
 
     try {
       // Step 1: Query vault status
