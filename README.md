@@ -94,15 +94,29 @@ cp .env.example .env
 
 **⚠️ NEVER use the same wallet for multiple roles in production!**
 
+### Security Validation
+
+```bash
+# Validate deployment environment
+npm run validate-deployment
+
+# Validate agent environment  
+npm run validate-agent
+
+# General validation
+npm run validate-env
+```
+
 ### Development Workflow
 
 ```bash
 # 1. Configure secure environment
 cp .env.example .env
-# Edit .env with your secure configuration
+# Edit .env with your REAL wallet addresses and keys
+# NEVER use placeholder values in production
 
-# 2. Validate environment setup
-node -e "const EnvValidator = require('./lib/envValidator'); new EnvValidator().validateOrExit('deployment')"
+# 2. Validate environment security
+npm run validate-deployment
 
 # 3. Compile smart contracts
 npm run compile
@@ -116,10 +130,13 @@ npx hardhat run scripts/deploy.js --network sepolia
 # 6. Update .env with deployed contract address
 # Set VAULT_CONTRACT_ADDRESS and NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS
 
-# 7. Start dashboard
+# 7. Validate agent environment
+npm run validate-agent
+
+# 8. Start dashboard
 cd apps/web && npm run dev
 
-# 8. Run payment agent (in separate terminal)
+# 9. Run payment agent (in separate terminal)
 cd apps/agent && node paymentAgent.js
 ```
 

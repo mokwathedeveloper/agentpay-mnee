@@ -1,126 +1,140 @@
 # Security Setup Guide
 
-## 🔐 Environment Configuration
+## Overview
 
-AgentPay uses role-based wallet separation for maximum security. Each role has specific responsibilities and should use different wallets.
+AgentPay implements role-based wallet separation for maximum security. **NEVER use the same wallet for multiple roles in production.**
 
-### 🎭 Wallet Roles
+## Required Roles
 
-#### 1. **Deployer Wallet** (DEPLOYER_PRIVATE_KEY)
-- **Purpose**: Deploy and own AgentPayVault contracts
-- **Responsibilities**: Contract deployment, ownership management
-- **Security**: Use a dedicated deployment wallet, never your main wallet
+### 1. Deployer Wallet
+- **Purpose**: Deploy contracts and transfer ownership
+- **Environment**: `DEPLOYER_PRIVATE_KEY`
+- **Security**: Use a dedicated wallet, never your main wallet
+- **After deployment**: Can be stored offline
 
-#### 2. **Agent Wallet** (AGENT_PRIVATE_KEY)  
+### 2. Vault Owner Wallet  
+- **Purpose**: Configure vault settings (limits, whitelist)
+- **Environment**: `VAULT_OWNER_ADDRESS`
+- **Security**: Should be a secure wallet (hardware wallet recommended)
+- **Ongoing**: Needed for policy changes
+
+### 3. Agent Wallet
 - **Purpose**: Execute autonomous payments
-- **Responsibilities**: Payment execution, policy validation
-- **Security**: Separate from deployment wallet, limited MNEE balance
+- **Environment**: `AGENT_PRIVATE_KEY`
+- **Security**: Separate from deployer and owner wallets
+- **Funding**: Only fund with necessary MNEE tokens
 
-#### 3. **Vault Owner** (VAULT_OWNER_ADDRESS)
-- **Purpose**: Configure vault settings
-- **Responsibilities**: Set limits, manage whitelist, deposit/withdraw
-- **Security**: Can be same as deployer or separate for additional security
+## Secure Configuration Steps
 
-### 🛠️ Setup Process
+### Step 1: Generate Secure Wallets
 
-#### Step 1: Generate Wallets
 ```bash
-# Generate new wallets (use a secure method)
-# NEVER use these example keys in production
+# Generate new wallets (use secure random generation)
+# NEVER use online generators for production keys
 
-# Deployer wallet
-DEPLOYER_PRIVATE_KEY=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
-
-# Agent wallet  
-AGENT_PRIVATE_KEY=0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+# For each role, generate a unique wallet:
+# - Deployer wallet
+# - Vault owner wallet  
+# - Agent wallet
 ```
 
-#### Step 2: Configure Environment
+### Step 2: Configure Environment
+
 ```bash
-# Copy example configuration
+# Copy environment template
 cp .env.example .env
 
-# Edit .env with your real values
-nano .env
+# Edit .env with your REAL wallet addresses and keys
+# NEVER commit .env to git
 ```
 
-#### Step 3: Validate Configuration
+### Step 3: Validate Configuration
+
 ```bash
-# Test deployment environment
-node -e "const EnvValidator = require('./lib/envValidator'); new EnvValidator().validateOrExit('deployment')"
+# Validate deployment environment
+node -e "const SecureEnvValidator = require('./lib/secureEnvValidator'); new SecureEnvValidator().validateOrExit('deployment')"
 
-# Test agent environment
-node -e "const EnvValidator = require('./lib/envValidator'); new EnvValidator().validateOrExit('agent')"
+# Validate agent environment
+node -e "const SecureEnvValidator = require('./lib/secureEnvValidator'); new SecureEnvValidator().validateOrExit('agent')"
 ```
 
-### 🚨 Security Checklist
+## Security Checklist
 
-- [ ] **Different wallets** for deployer and agent roles
-- [ ] **No hardcoded keys** in source code
-- [ ] **Placeholder keys replaced** with real values
-- [ ] **RPC URLs configured** with real API keys
-- [ ] **Environment validation** passes without errors
-- [ ] **.env file excluded** from git commits
-- [ ] **Backup private keys** stored securely offline
+### ✅ Environment Security
+- [ ] Different private keys for each role
+- [ ] No placeholder values in production
+- [ ] .env file not committed to git
+- [ ] RPC URLs use real API keys
+- [ ] All addresses are valid Ethereum addresses
 
-### 🔍 Environment Validation
+### ✅ Wallet Security
+- [ ] Deployer wallet is separate from main wallet
+- [ ] Agent wallet has minimal MNEE funding
+- [ ] Vault owner uses hardware wallet (recommended)
+- [ ] Private keys stored securely (not in plain text)
 
-The system automatically validates environment variables on startup:
+### ✅ Network Security
+- [ ] Using secure RPC endpoints (HTTPS)
+- [ ] API keys are not shared or exposed
+- [ ] Network configuration matches deployment target
 
-```javascript
-// Automatic validation in agent
-const validator = new EnvValidator();
-validator.validateOrExit('agent');
+## Common Security Issues
+
+### 🚨 CRITICAL: Same Key for Multiple Roles
+```bash
+# BAD - Same key used for deployer and agent
+DEPLOYER_PRIVATE_KEY=0xabc123...
+AGENT_PRIVATE_KEY=0xabc123...  # SAME KEY - NEVER DO THIS
 ```
 
-**Validation Checks:**
-- ✅ Private key format (64-char hex with 0x prefix)
-- ✅ Ethereum address format validation
-- ✅ RPC URL format and accessibility
-- ✅ Required environment variables present
-- ⚠️ Placeholder detection and warnings
+### 🚨 CRITICAL: Placeholder Values in Production
+```bash
+# BAD - Using example values
+DEPLOYER_PRIVATE_KEY=0x1234567890abcdef...  # PLACEHOLDER
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY  # PLACEHOLDER
+```
 
-### 🛡️ Best Practices
+### ⚠️ WARNING: Insufficient Separation
+```bash
+# RISKY - Same address for owner and agent
+VAULT_OWNER_ADDRESS=0xabc123...
+AGENT_WALLET_ADDRESS=0xabc123...  # SAME ADDRESS
+```
 
-#### Private Key Security
-- **Never commit** private keys to version control
-- **Use hardware wallets** for production deployments
-- **Rotate keys regularly** for long-running agents
-- **Limit wallet balances** to minimize exposure
+## Production Deployment
 
-#### Network Security
-- **Use dedicated RPC endpoints** for production
-- **Configure rate limiting** on RPC providers
-- **Monitor transaction patterns** for anomalies
-- **Set up alerts** for unusual activity
+### Pre-deployment Security Audit
+1. Run security validation: `npm run validate-env`
+2. Verify wallet separation
+3. Test with small amounts first
+4. Monitor all transactions
 
-#### Operational Security
-- **Separate environments** (dev/staging/prod)
-- **Regular security audits** of configurations
-- **Monitor vault balances** and spending patterns
-- **Implement emergency procedures** for incidents
+### Post-deployment Security
+1. Transfer deployer key to cold storage
+2. Set up monitoring for agent transactions
+3. Regular security audits
+4. Implement spending limits
 
-### 🚨 Emergency Procedures
+## Emergency Procedures
 
-#### Compromised Agent Wallet
-1. **Immediately pause** agent operations
-2. **Transfer remaining MNEE** from vault to secure wallet
-3. **Generate new agent wallet** and update configuration
-4. **Review transaction history** for unauthorized payments
-5. **Update whitelist** if necessary
+### Compromised Agent Wallet
+1. Immediately pause agent operations
+2. Withdraw remaining funds from vault
+3. Generate new agent wallet
+4. Update whitelist and limits
 
-#### Compromised Deployer Wallet
-1. **Transfer contract ownership** to new secure wallet
-2. **Update deployment configuration**
-3. **Audit all deployed contracts**
-4. **Consider redeployment** if necessary
+### Compromised Vault Owner
+1. Transfer ownership to new secure wallet
+2. Update all access controls
+3. Audit recent transactions
+4. Notify stakeholders
 
-### 📞 Support
+## Security Resources
 
-For security issues or questions:
-- Review this documentation thoroughly
-- Check environment validation output
-- Verify wallet addresses and balances
-- Test with small amounts first
+- [Ethereum Security Best Practices](https://consensys.github.io/smart-contract-best-practices/)
+- [OpenZeppelin Security Guidelines](https://docs.openzeppelin.com/contracts/4.x/security)
+- [Hardware Wallet Guide](https://ethereum.org/en/wallets/)
 
-**Remember**: Security is paramount in Web3. Take time to properly configure and validate your environment before deploying to mainnet.
+---
+
+**Remember: Security is not optional. Take time to implement proper security measures.**

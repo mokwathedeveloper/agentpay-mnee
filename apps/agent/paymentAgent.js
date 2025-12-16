@@ -1,6 +1,6 @@
 const { ethers } = require('ethers');
 require('dotenv').config();
-const EnvValidator = require('../../lib/envValidator');
+const SecureEnvValidator = require('../../lib/secureEnvValidator');
 
 // AgentPayVault ABI (minimal interface)
 const VAULT_ABI = [
@@ -12,8 +12,8 @@ const VAULT_ABI = [
 
 class PaymentAgent {
   constructor() {
-    // Validate environment configuration
-    const validator = new EnvValidator();
+    // Validate environment configuration with security checks
+    const validator = new SecureEnvValidator();
     validator.validateOrExit('agent');
     
     // Load configuration from environment

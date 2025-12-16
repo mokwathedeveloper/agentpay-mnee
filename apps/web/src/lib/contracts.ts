@@ -1,7 +1,11 @@
 import { ethers } from 'ethers'
 
 // MNEE Token Contract Address from environment
-export const MNEE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_MNEE_TOKEN_ADDRESS || '0x8ccedbAe4916b79da7F3F612EfB2EB93A2bFD6cF'
+export const MNEE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_MNEE_TOKEN_ADDRESS
+
+if (!MNEE_TOKEN_ADDRESS) {
+  console.error('NEXT_PUBLIC_MNEE_TOKEN_ADDRESS not configured in environment');
+}
 
 // Vault Contract Address from environment
 export const VAULT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS

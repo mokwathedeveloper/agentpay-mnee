@@ -1,12 +1,12 @@
 const { ethers } = require("hardhat");
 require('dotenv').config();
-const EnvValidator = require('../lib/envValidator');
+const SecureEnvValidator = require('../lib/secureEnvValidator');
 
 async function main() {
   console.log("🚀 Deploying AgentPay contracts...");
   
-  // Validate deployment environment
-  const validator = new EnvValidator();
+  // Validate deployment environment with security checks
+  const validator = new SecureEnvValidator();
   validator.validateOrExit('deployment');
   
   // Get deployment configuration
